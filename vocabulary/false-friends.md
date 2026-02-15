@@ -1,0 +1,59 @@
+# False Friends (Valse Vrienden)
+
+These Dutch words look like English words but mean something completely different. Don't let them trick you!
+
+---
+
+| Dutch Word | What It Looks Like | What It Actually Means | Example Sentence |
+|------------|-------------------|----------------------|-----------------|
+| slim | slim/thin | smart, clever | Hij is een slimme jongen. *(He is a smart boy.)* |
+| boos | boss | angry | Mijn moeder is boos op mij. *(My mother is angry at me.)* |
+| eventueel | eventually | possibly, if necessary | We kunnen eventueel morgen gaan. *(We could possibly go tomorrow.)* |
+| actueel | actual | current, topical | Dit is een actueel onderwerp. *(This is a current topic.)* |
+| sympathiek | sympathetic | nice, likeable | De nieuwe buurman is erg sympathiek. *(The new neighbor is very likeable.)* |
+| chef | chef/cook | boss, manager | De chef wil je spreken. *(The boss wants to talk to you.)* |
+| college | college | lecture | Ik heb om negen uur college. *(I have a lecture at nine o'clock.)* |
+| winkel | wrinkle | shop, store | Er is een nieuwe winkel in de straat. *(There is a new shop in the street.)* |
+| raar | rare | strange, weird | Wat een raar verhaal! *(What a strange story!)* |
+| map | map | folder, binder | Stop het document in de map. *(Put the document in the folder.)* |
+| bril | brilliant | glasses, spectacles | Ik kan niets zien zonder mijn bril. *(I can't see anything without my glasses.)* |
+| vers | verse | fresh | Dit brood is vers van de bakker. *(This bread is fresh from the baker.)* |
+| angel | angel | sting (of a bee/wasp) | De angel van de bij zit nog in mijn arm. *(The bee's sting is still in my arm.)* |
+| brand | brand | fire | Er is brand in het gebouw! *(There is a fire in the building!)* |
+| gift | gift | poison | Rattengift is erg gevaarlijk. *(Rat poison is very dangerous.)* |
+| hoe | hoe (garden tool) | how | Hoe gaat het met je? *(How are you doing?)* |
+| monster | monster | sample, specimen | De dokter neemt een monster van het bloed. *(The doctor takes a sample of the blood.)* |
+| pest | pest | plague, nuisance | De pest was een verschrikkelijke ziekte. *(The plague was a terrible disease.)* |
+| rok | rock | skirt | Zij draagt een rode rok. *(She wears a red skirt.)* |
+| room | room | cream | Wil je room in je koffie? *(Do you want cream in your coffee?)* |
+| stout | stout (beer) | naughty, bad (of children) | Het kind was stout vandaag. *(The child was naughty today.)* |
+| warm | warm (similar) | hot, warm (stronger than English "warm") | Het is dertig graden, heel warm! *(It's thirty degrees, very hot!)* |
+| brief | brief | letter (mail) | Ik heb een brief van de gemeente ontvangen. *(I received a letter from the municipality.)* |
+| camping | camping (activity) | campsite | Wij verblijven op een camping in Frankrijk. *(We are staying at a campsite in France.)* |
+| dapper | dapper | brave, courageous | De brandweerman was heel dapper. *(The firefighter was very brave.)* |
+| fee | fee/cost | fairy | De fee had een toverstaf. *(The fairy had a magic wand.)* |
+| glad | glad/happy | slippery, smooth | Pas op, de weg is glad! *(Watch out, the road is slippery!)* |
+| lust | lust (sexual) | desire, appetite (broader meaning) | Ik heb geen lust om te koken. *(I don't feel like cooking.)* |
+| net | net (for catching) | just (now), neat, tidy | Ik ben net thuisgekomen. *(I just got home.)* |
+| smal | small | narrow | De straat is te smal voor twee auto's. *(The street is too narrow for two cars.)* |
+
+---
+
+## How to Remember These
+
+A few of the trickiest pairs to keep straight:
+
+- **slim** = smart (for "thin/slender" in Dutch, use *slank* or *dun*)
+- **gift** = poison (for "gift/present" in Dutch, use *cadeau* or *geschenk*)
+- **brief** = letter (for "brief/short" in Dutch, use *kort* or *beknopt*)
+- **glad** = slippery (for "glad/happy" in Dutch, use *blij*)
+- **brand** = fire (for "brand/trademark" in Dutch, use *merk*)
+- **map** = folder (for "map/chart" in Dutch, use *kaart* or *landkaart*)
+- **boos** = angry (for "boss" in Dutch, use *baas* or *chef*)
+- **monster** = sample (for "monster/creature" in Dutch, use *monster* can mean both, but primarily means "sample")
+
+> **Tip:** When in doubt, remember that many Dutch-English false friends evolved from the same Germanic root but drifted apart in meaning over centuries. The Dutch meaning often preserves an older or more specific sense of the original word.
+
+---
+
+*See also: [Cognates](cognates.md) | Back to: [Greetings & Basics](01-greetings-basics.md)*

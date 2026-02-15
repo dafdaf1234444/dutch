@@ -1,0 +1,305 @@
+# Verbs: Present Tense
+
+## Finding the Stem
+
+The stem of a Dutch verb is the foundation of present-tense conjugation. To find the stem:
+
+1. Take the **infinitive** (e.g., *werken*)
+2. Remove **-en** → *werk*
+3. Apply Dutch **spelling rules**:
+
+| Rule | Infinitive | Raw Stem | Correct Stem | Why |
+|------|-----------|----------|-------------|-----|
+| Double vowel in closed syllable | mak**en** | mak | **maak** | Long /aː/ needs two a's in a closed syllable |
+| Double vowel in closed syllable | lev**en** | lev | **leef** | Long /eː/ needs two e's, and v → f at word end |
+| v → f at end of word | schrijv**en** | schrijv | **schrijf** | v never ends a Dutch word |
+| z → s at end of word | reiz**en** | reiz | **reis** | z never ends a Dutch word |
+| Single consonant | lop**en** | lopp | **loop** | Double consonant simplified; long vowel restored |
+| Single consonant | zitt**en** | zitt | **zit** | Short vowel keeps single consonant in closed syllable |
+
+---
+
+## Conjugation Pattern
+
+| Person | Ending | Example (*werken*) | Example (*maken*) |
+|--------|--------|-------------------|-------------------|
+| ik | stem | ik werk | ik maak |
+| jij/je | stem + **t** | jij werkt | jij maakt |
+| u | stem + **t** | u werkt | u maakt |
+| hij/zij/het | stem + **t** | hij werkt | hij maakt |
+| wij/we | infinitive | wij werken | wij maken |
+| jullie | infinitive | jullie werken | jullie maken |
+| zij (they) | infinitive | zij werken | zij maken |
+
+### Important: Inversion Rule for *jij/je*
+
+When **jij/je** comes **after** the verb (in questions or inverted sentences), the **-t is dropped**:
+
+| Normal | Inverted (question) |
+|--------|-------------------|
+| Jij werk**t** hier. | **Werk** jij hier? |
+| Jij maak**t** dat. | **Maak** jij dat? |
+| Jij lees**t** een boek. | **Lees** jij een boek? |
+
+This rule applies **only** to jij/je — not to u, hij, or zij.
+
+> **Note:** If the stem already ends in **-t**, the conjugated form stays the same for all singular persons: *zitten* → stem *zit* → jij zit (not jij zitt). In inversion nothing visibly changes: "Zit jij hier?"
+
+---
+
+## Top 30 Regular Verbs
+
+| Infinitive | English | Stem | Ik | Jij | Hij/Zij/Het | Wij |
+|-----------|---------|------|-----|------|------------|------|
+| werken | to work | werk | ik werk | jij werkt | hij werkt | wij werken |
+| wonen | to live | woon | ik woon | jij woont | hij woont | wij wonen |
+| leren | to learn | leer | ik leer | jij leert | hij leert | wij leren |
+| praten | to talk | praat | ik praat | jij praat | hij praat | wij praten |
+| luisteren | to listen | luister | ik luister | jij luistert | hij luistert | wij luisteren |
+| kopen | to buy | koop | ik koop | jij koopt | hij koopt | wij kopen |
+| verkopen | to sell | verkoop | ik verkoop | jij verkoopt | hij verkoopt | wij verkopen |
+| betalen | to pay | betaal | ik betaal | jij betaalt | hij betaalt | wij betalen |
+| eten | to eat | eet | ik eet | jij eet | hij eet | wij eten |
+| drinken | to drink | drink | ik drink | jij drinkt | hij drinkt | wij drinken |
+| lezen | to read | lees | ik lees | jij leest | hij leest | wij lezen |
+| schrijven | to write | schrijf | ik schrijf | jij schrijft | hij schrijft | wij schrijven |
+| fietsen | to cycle | fiets | ik fiets | jij fietst | hij fietst | wij fietsen |
+| wandelen | to walk | wandel | ik wandel | jij wandelt | hij wandelt | wij wandelen |
+| zwemmen | to swim | zwem | ik zwem | jij zwemt | hij zwemt | wij zwemmen |
+| koken | to cook | kook | ik kook | jij kookt | hij kookt | wij koken |
+| spelen | to play | speel | ik speel | jij speelt | hij speelt | wij spelen |
+| studeren | to study | studeer | ik studeer | jij studeert | hij studeert | wij studeren |
+| reizen | to travel | reis | ik reis | jij reist | hij reist | wij reizen |
+| wachten | to wait | wacht | ik wacht | jij wacht | hij wacht | wij wachten |
+| maken | to make | maak | ik maak | jij maakt | hij maakt | wij maken |
+| vragen | to ask | vraag | ik vraag | jij vraagt | hij vraagt | wij vragen |
+| antwoorden | to answer | antwoord | ik antwoord | jij antwoordt | hij antwoordt | wij antwoorden |
+| beginnen | to begin | begin | ik begin | jij begint | hij begint | wij beginnen |
+| geloven | to believe | geloof | ik geloof | jij gelooft | hij gelooft | wij geloven |
+| hopen | to hope | hoop | ik hoop | jij hoopt | hij hoopt | wij hopen |
+| denken | to think | denk | ik denk | jij denkt | hij denkt | wij denken |
+| proberen | to try | probeer | ik probeer | jij probeert | hij probeert | wij proberen |
+| vertellen | to tell | vertel | ik vertel | jij vertelt | hij vertelt | wij vertellen |
+| begrijpen | to understand | begrijp | ik begrijp | jij begrijpt | hij begrijpt | wij begrijpen |
+
+> **Note on stems ending in -t:** When the stem already ends in *-t* (e.g., *praat*, *wacht*, *eet*, *fiets*), the jij/hij form does not add an extra -t. *Jij praat* (not *jij praatt*). However, *antwoordt* does get a -t because the stem is *antwoord* (ending in -d, not -t).
+
+---
+
+## Key Irregular Verbs
+
+### zijn (to be)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | ben |
+| jij/je | bent |
+| u | bent / is |
+| hij/zij/het | is |
+| wij/we | zijn |
+| jullie | zijn |
+| zij (they) | zijn |
+
+> Inversion: *Ben jij...?* (not *Bent jij...?*)
+
+### hebben (to have)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | heb |
+| jij/je | hebt |
+| u | hebt / heeft |
+| hij/zij/het | heeft |
+| wij/we | hebben |
+| jullie | hebben |
+| zij (they) | hebben |
+
+> Inversion: *Heb jij...?* (not *Hebt jij...?*)
+
+### gaan (to go)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | ga |
+| jij/je | gaat |
+| u | gaat |
+| hij/zij/het | gaat |
+| wij/we | gaan |
+| jullie | gaan |
+| zij (they) | gaan |
+
+> Inversion: *Ga jij...?*
+
+### komen (to come)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | kom |
+| jij/je | komt |
+| u | komt |
+| hij/zij/het | komt |
+| wij/we | komen |
+| jullie | komen |
+| zij (they) | komen |
+
+> Inversion: *Kom jij...?*
+
+### doen (to do)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | doe |
+| jij/je | doet |
+| u | doet |
+| hij/zij/het | doet |
+| wij/we | doen |
+| jullie | doen |
+| zij (they) | doen |
+
+> Inversion: *Doe jij...?*
+
+### zullen (shall/will)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | zal |
+| jij/je | zult / zal |
+| u | zult / zal |
+| hij/zij/het | zal |
+| wij/we | zullen |
+| jullie | zullen |
+| zij (they) | zullen |
+
+> Inversion: *Zal jij...?*
+
+### kunnen (can/to be able to)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | kan |
+| jij/je | kunt / kan |
+| u | kunt / kan |
+| hij/zij/het | kan |
+| wij/we | kunnen |
+| jullie | kunnen |
+| zij (they) | kunnen |
+
+> Inversion: *Kun jij...?* or *Kan jij...?*
+
+### mogen (may/to be allowed to)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | mag |
+| jij/je | mag |
+| u | mag |
+| hij/zij/het | mag |
+| wij/we | mogen |
+| jullie | mogen |
+| zij (they) | mogen |
+
+> Inversion: *Mag jij...?*
+
+### moeten (must/to have to)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | moet |
+| jij/je | moet |
+| u | moet |
+| hij/zij/het | moet |
+| wij/we | moeten |
+| jullie | moeten |
+| zij (they) | moeten |
+
+> Inversion: *Moet jij...?*
+
+### willen (to want)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | wil |
+| jij/je | wilt / wil |
+| u | wilt / wil |
+| hij/zij/het | wil |
+| wij/we | willen |
+| jullie | willen |
+| zij (they) | willen |
+
+> Inversion: *Wil jij...?*
+
+### weten (to know)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | weet |
+| jij/je | weet |
+| u | weet |
+| hij/zij/het | weet |
+| wij/we | weten |
+| jullie | weten |
+| zij (they) | weten |
+
+> Inversion: *Weet jij...?*
+
+### zien (to see)
+
+| Person | Conjugation |
+|--------|------------|
+| ik | zie |
+| jij/je | ziet |
+| u | ziet |
+| hij/zij/het | ziet |
+| wij/we | zien |
+| jullie | zien |
+| zij (they) | zien |
+
+> Inversion: *Zie jij...?*
+
+---
+
+## Separable Verbs
+
+Many Dutch verbs are **separable** (*scheidbare werkwoorden*). They consist of a prefix + a base verb. In the present tense, the prefix separates and moves to the **end** of the clause.
+
+### Common Separable Verbs
+
+| Infinitive | English | Prefix | Base Verb |
+|-----------|---------|--------|-----------|
+| opstaan | to get up | op | staan |
+| meenemen | to take along | mee | nemen |
+| aankomen | to arrive | aan | komen |
+| weggaan | to leave/go away | weg | gaan |
+| terugkomen | to come back | terug | komen |
+| opbellen | to phone/call | op | bellen |
+| binnenkomen | to come in | binnen | komen |
+| uitnodigen | to invite | uit | nodigen |
+| meebrengen | to bring along | mee | brengen |
+| afspreken | to arrange/agree | af | spreken |
+
+### How They Work in Sentences
+
+The **base verb** stays in the normal verb position (second position), and the **prefix** goes to the end:
+
+| Infinitive | Sentence | English |
+|-----------|----------|---------|
+| opstaan | Ik **sta** elke dag om 7 uur **op**. | I get up every day at 7 o'clock. |
+| meenemen | Hij **neemt** zijn tas **mee**. | He takes his bag along. |
+| aankomen | De trein **komt** om 9 uur **aan**. | The train arrives at 9 o'clock. |
+| weggaan | Wij **gaan** morgen **weg**. | We are leaving tomorrow. |
+| terugkomen | Zij **komt** volgende week **terug**. | She comes back next week. |
+| opbellen | Ik **bel** je vanavond **op**. | I'll call you this evening. |
+
+### In Questions
+
+The same separation applies — the prefix still goes to the end:
+
+- **Sta** jij altijd zo vroeg **op**? — Do you always get up so early?
+- **Neem** jij je boek **mee**? — Are you taking your book along?
+- **Komt** de trein op tijd **aan**? — Does the train arrive on time?
+
+> **Tip:** When the separable verb is used with a modal verb (*kunnen*, *moeten*, *willen*, etc.), it stays together as an infinitive at the end: *Ik moet om 6 uur **opstaan**.* — I have to get up at 6 o'clock.
+
+---
+
+*Previous: [Articles: de & het](articles-de-het.md) | Next: [Word Order](word-order.md)*
