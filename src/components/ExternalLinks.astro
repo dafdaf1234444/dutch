@@ -1,0 +1,14 @@
+---
+// Makes all external links (href starting with "http") open in a new tab.
+---
+
+<script>
+  function setExternalLinks() {
+    document.querySelectorAll('a[href^="http"]').forEach(a => {
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener noreferrer");
+    });
+  }
+  setExternalLinks();
+  document.addEventListener("astro:after-swap", setExternalLinks);
+</script>

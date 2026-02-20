@@ -1,0 +1,257 @@
+---
+// PageFlashcards – Scans the current page's tables for Dutch vocabulary
+// and renders a mini flashcard practice section at the bottom.
+// No data duplication: reads directly from the DOM.
+---
+
+<page-flashcards id="page-flashcards"></page-flashcards>
+
+<script>
+const DUTCH_HEADERS = new Set([
+  "dutch", "dutch word", "dutch expression", "dutch phrase",
+  "example", "example sentence", "example sentences",
+  "dialogue", "infinitive", "word", "diminutive",
+  "singular", "plural", "original", "conjugation",
+  "stem", "correct stem", "statement", "question",
+  "tag", "example question", "example answer",
+  "sentence", "base verb", "prefix",
+  "normal", "inverted (question)",
+  "name", "spelling",
+  "ik", "jij", "hij/zij/het", "wij",
+]);
+
+const ENGLISH_HEADERS = new Set([
+  "english", "meaning", "translation", "english meaning",
+]);
+
+const IPA_HEADERS = new Set(["ipa", "pronunciation"]);
+
+interface Card {
+  dutch: string;
+  english: string;
+  ipa: string;
+}
+
+function cleanText(cell: Element): string {
+  const clone = cell.cloneNode(true) as Element;
+  clone.querySelectorAll("em").forEach(em => em.remove());
+  clone.querySelectorAll(".dutch-audio-btn").forEach(btn => btn.remove());
+  let text = clone.textContent?.trim() ?? "";
+  text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) =>
+    inner.length > 3 ? " " : `(${inner})`
+  );
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function extractCards(): Card[] {
+  const cards: Card[] = [];
+  const seen = new Set<string>();
+  const tables = document.querySelectorAll("table");
+
+  for (const table of tables) {
+    const headers = table.querySelectorAll("thead th");
+    let dutchCol = -1, englishCol = -1, ipaCol = -1;
+
+    headers.forEach((th, i) => {
+      const text = th.textContent?.trim().toLowerCase() ?? "";
+      if (dutchCol === -1 && DUTCH_HEADERS.has(text)) dutchCol = i;
+      if (englishCol === -1 && ENGLISH_HEADERS.has(text)) englishCol = i;
+      if (ipaCol === -1 && IPA_HEADERS.has(text)) ipaCol = i;
+    });
+
+    if (dutchCol === -1) continue;
+
+    const rows = table.querySelectorAll("tbody tr");
+    for (const row of rows) {
+      const cells = row.querySelectorAll("td");
+      const dutch = cleanText(cells[dutchCol]);
+      if (!dutch || dutch.length < 2) continue;
+
+      const key = dutch.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const english = englishCol >= 0 ? cleanText(cells[englishCol]) : "";
+      const ipaCell = ipaCol >= 0 ? cells[ipaCol]?.textContent?.trim() ?? "" : "";
+
+      cards.push({ dutch, english, ipa: ipaCell });
+    }
+  }
+  return cards;
+}
+
+class PageFlashcards extends HTMLElement {
+  cards: Card[] = [];
+  order: number[] = [];
+  current = 0;
+  flipped = false;
+  active = false;
+
+  static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+
+  connectedCallback() {
+    // Defer to ensure tables are rendered
+    const init = () => {
+      this.cards = extractCards();
+      if (this.cards.length < 2) {
+        this.style.display = "none";
+        return;
+      }
+      this.renderButton();
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(init);
+    } else {
+      requestAnimationFrame(() => setTimeout(init, 0));
+    }
+  }
+
+  shuffle(arr: number[]): number[] {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  esc(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  renderButton() {
+    this.innerHTML = `
+      <div class="pf-section">
+        <div class="pf-divider"></div>
+        <button class="pf-start-btn" id="pf-start" type="button">
+          Practice these words (${this.cards.length} cards)
+        </button>
+      </div>`;
+    this.querySelector("#pf-start")!.addEventListener("click", () => this.start());
+  }
+
+  start() {
+    this.order = this.shuffle([...Array(this.cards.length).keys()]);
+    this.current = 0;
+    this.flipped = false;
+    this.active = true;
+    this.renderCard();
+  }
+
+  renderCard() {
+    const total = this.order.length;
+
+    if (this.current >= total) {
+      this.innerHTML = `
+        <div class="pf-section">
+          <div class="pf-divider"></div>
+          <div class="pf-done">
+            <p>You reviewed all ${total} cards from this page.</p>
+            <div class="pf-actions">
+              <button class="pf-btn pf-btn-secondary" id="pf-close" type="button">Close</button>
+              <button class="pf-btn pf-btn-primary" id="pf-restart" type="button">Restart</button>
+            </div>
+          </div>
+        </div>`;
+      this.querySelector("#pf-close")!.addEventListener("click", () => this.renderButton());
+      this.querySelector("#pf-restart")!.addEventListener("click", () => this.start());
+      return;
+    }
+
+    const card = this.cards[this.order[this.current]];
+    const num = this.current + 1;
+    const pct = Math.round((this.current / total) * 100);
+
+    this.innerHTML = `
+      <div class="pf-section">
+        <div class="pf-divider"></div>
+        <div class="pf-header">
+          <button class="pf-btn pf-btn-small pf-btn-secondary" id="pf-close" type="button">Close</button>
+          <span class="pf-counter">${num} / ${total}</span>
+        </div>
+        <div class="pf-progress"><div class="pf-progress-fill" style="width:${pct}%"></div></div>
+        <div class="pf-card ${this.flipped ? "pf-flipped" : ""}" id="pf-card">
+          <div class="pf-word">${card.dutch}</div>
+          ${card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : ""}
+          <button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">
+            ${PageFlashcards.SVG}
+          </button>
+          ${this.flipped ? `
+            <div class="pf-reveal-divider"></div>
+            <div class="pf-answer">${card.english}</div>
+          ` : `
+            <div class="pf-hint">Click to reveal</div>
+          `}
+        </div>
+        <div class="pf-actions">
+          <button class="pf-btn pf-btn-primary pf-btn-next" id="pf-next" type="button" ${!this.flipped ? "disabled" : ""}>Next</button>
+        </div>
+      </div>`;
+
+    this.querySelector("#pf-card")!.addEventListener("click", (e) => {
+      if ((e.target as Element).closest(".dutch-audio-btn")) return;
+      if (!this.flipped) { this.flipped = true; this.renderCard(); }
+    });
+    this.querySelector("#pf-next")!.addEventListener("click", () => {
+      this.current++;
+      this.flipped = false;
+      this.renderCard();
+    });
+    this.querySelector("#pf-close")!.addEventListener("click", () => this.renderButton());
+  }
+}
+
+customElements.define("page-flashcards", PageFlashcards);
+</script>
+
+<style>
+  .pf-section { max-width: 540px; margin: 2rem auto 0; }
+  .pf-divider { height: 1px; background: var(--sl-color-gray-4); margin-bottom: 1.5rem; }
+  .pf-start-btn {
+    display: block; width: 100%; padding: 0.75rem 1rem;
+    border: 2px solid var(--sl-color-accent); border-radius: 8px;
+    background: none; color: var(--sl-color-accent);
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .pf-start-btn:hover {
+    background: var(--sl-color-accent); color: var(--sl-color-text-invert);
+  }
+  .pf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+  .pf-counter { font-size: 0.85rem; color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
+  .pf-progress { width: 100%; height: 5px; border-radius: 3px; background: var(--sl-color-gray-4); margin-bottom: 1rem; overflow: hidden; }
+  .pf-progress-fill { height: 100%; border-radius: 3px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+  .pf-card {
+    border: 2px solid var(--sl-color-gray-4); border-radius: 10px;
+    padding: 2rem 1.25rem; min-height: 180px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; transition: border-color 0.2s; margin-bottom: 1rem;
+  }
+  .pf-card:hover { border-color: var(--sl-color-accent); }
+  .pf-card.pf-flipped { cursor: default; }
+  .pf-word { font-size: 1.6rem; font-weight: 700; color: var(--sl-color-text); margin-bottom: 0.25rem; }
+  .pf-ipa { font-size: 0.95rem; color: var(--sl-color-gray-3); margin-bottom: 0.6rem; }
+  .pf-audio {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.35rem; border: 1px solid var(--sl-color-gray-4); border-radius: 5px;
+    background: none; color: var(--sl-color-text); cursor: pointer;
+  }
+  .pf-audio:hover { background-color: var(--sl-color-accent-low); }
+  .pf-reveal-divider { width: 50px; height: 1px; background: var(--sl-color-gray-4); margin: 0.8rem 0; }
+  .pf-answer { font-size: 1.2rem; font-weight: 600; color: var(--sl-color-text-accent); }
+  .pf-hint { margin-top: 0.75rem; font-size: 0.8rem; color: var(--sl-color-gray-3); }
+  .pf-done { text-align: center; }
+  .pf-done p { color: var(--sl-color-text); margin-bottom: 1rem; }
+  .pf-actions { display: flex; gap: 0.5rem; justify-content: center; }
+  .pf-btn {
+    padding: 0.45rem 1.2rem; border-radius: 7px; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-4); background: none;
+    color: var(--sl-color-text); transition: background-color 0.15s, opacity 0.15s;
+  }
+  .pf-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pf-btn-primary { background: var(--sl-color-accent); color: var(--sl-color-text-invert); border-color: transparent; }
+  .pf-btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .pf-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-accent-low); }
+  .pf-btn-small { padding: 0.25rem 0.7rem; font-size: 0.82rem; }
+  .pf-btn-next { min-width: 100px; }
+</style>
