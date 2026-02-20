@@ -1,0 +1,61 @@
+---
+interface Props {
+  text: string;
+}
+
+const { text } = Astro.props;
+---
+
+<say-button data-text={text}>
+  <button type="button" class="say-btn" aria-label={`Listen to "${text}" in Dutch`}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+  </button>
+</say-button>
+
+<style>
+  .say-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 4px;
+    color: var(--sl-color-text-accent);
+    vertical-align: middle;
+    margin-left: 0.25em;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .say-btn:hover {
+    background-color: var(--sl-color-accent-low);
+  }
+  .say-btn.speaking {
+    color: var(--sl-color-text-invert);
+    background-color: var(--sl-color-accent);
+  }
+</style>
+
+<script>
+  class SayButton extends HTMLElement {
+    connectedCallback() {
+      const btn = this.querySelector("button")!;
+      const text = this.dataset.text!;
+      btn.addEventListener("click", () => {
+        speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "nl-NL";
+        utter.rate = 0.9;
+        btn.classList.add("speaking");
+        utter.onend = () => btn.classList.remove("speaking");
+        utter.onerror = () => btn.classList.remove("speaking");
+        speechSynthesis.speak(utter);
+      });
+    }
+  }
+  customElements.define("say-button", SayButton);
+</script>

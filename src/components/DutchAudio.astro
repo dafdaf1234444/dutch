@@ -1,0 +1,139 @@
+---
+// This component auto-injects speaker buttons into:
+// 1. Table cells with Dutch content (matching column headers)
+// 2. Blockquote dialogues (lines starting with **Name:** ...)
+// Strips English translations before speaking.
+// Optimized: event delegation, template cloning, deferred execution.
+---
+
+<script>
+  const AUDIO_HEADERS = new Set([
+    // Vocabulary tables
+    "dutch", "dutch word", "dutch expression", "dutch phrase",
+    "example", "example sentence", "example sentences",
+    "dialogue", "infinitive",
+    // Diminutive / grammar tables
+    "word", "diminutive", "singular", "plural", "original",
+    "conjugation", "stem", "correct stem",
+    "statement", "question", "inversion",
+    // Verb conjugation person columns
+    "ik", "jij", "hij/zij/het", "wij",
+    // Additional grammar / verb columns
+    "sentence", "base verb", "prefix",
+    "normal", "inverted (question)",
+    // Questions page
+    "example question", "example answer", "tag",
+    // Alphabet page
+    "name", "spelling",
+  ]);
+
+  // Parse the SVG once into a reusable template
+  const btnTemplate = document.createElement("template");
+  btnTemplate.innerHTML = `<button type="button" class="dutch-audio-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button>`;
+
+  // Extract Dutch-only text from a cell, stripping English translations
+  function getDutchText(cell: Element): string {
+    const clone = cell.cloneNode(true) as Element;
+    // Remove <em> elements (English translations in italics)
+    clone.querySelectorAll("em").forEach(em => em.remove());
+    let text = clone.textContent?.trim() ?? "";
+    // Strip parenthetical English translations (more than 3 chars likely English)
+    text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) => {
+      return inner.length > 3 ? " " : `(${inner})`;
+    });
+    return text.replace(/\s+/g, " ").trim();
+  }
+
+  function createBtn(text: string): HTMLButtonElement {
+    const btn = btnTemplate.content.firstElementChild!.cloneNode(true) as HTMLButtonElement;
+    btn.ariaLabel = `Listen to "${text}" in Dutch`;
+    btn.dataset.text = text;
+    return btn;
+  }
+
+  // Event delegation: one listener on body handles all audio buttons
+  document.addEventListener("click", (e: Event) => {
+    const btn = (e.target as Element).closest?.(".dutch-audio-btn") as HTMLButtonElement | null;
+    if (!btn) return;
+    const text = btn.dataset.text;
+    if (!text) return;
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "nl-NL";
+    utter.rate = 0.9;
+    btn.classList.add("speaking");
+    utter.onend = () => btn.classList.remove("speaking");
+    utter.onerror = () => btn.classList.remove("speaking");
+    speechSynthesis.speak(utter);
+  });
+
+  function injectDutchAudio() {
+    // 1. Handle tables
+    const tables = document.querySelectorAll("table");
+    for (const table of tables) {
+      const headers = table.querySelectorAll("thead th");
+      const audioColIndices: number[] = [];
+      headers.forEach((th, i) => {
+        const text = th.textContent?.trim().toLowerCase() ?? "";
+        if (AUDIO_HEADERS.has(text)) {
+          audioColIndices.push(i);
+        }
+      });
+      if (audioColIndices.length === 0) continue;
+
+      const rows = table.querySelectorAll("tbody tr");
+      for (const row of rows) {
+        const cells = row.querySelectorAll("td");
+        for (const colIdx of audioColIndices) {
+          const cell = cells[colIdx];
+          if (!cell || cell.querySelector(".dutch-audio-btn")) continue;
+          const text = getDutchText(cell);
+          if (!text) continue;
+          cell.appendChild(createBtn(text));
+        }
+      }
+    }
+
+    // 2. Handle blockquote dialogues (Mini Dialogues in vocabulary pages)
+    const blockquotes = document.querySelectorAll("blockquote");
+    for (const bq of blockquotes) {
+      const paragraphs = bq.querySelectorAll("p");
+      for (const p of paragraphs) {
+        // Skip if already has a button
+        if (p.querySelector(".dutch-audio-btn")) continue;
+        // Match lines with bold speaker name: **Name:** Dutch text
+        const strong = p.querySelector("strong");
+        if (!strong) continue;
+        const strongText = strong.textContent ?? "";
+        // Must look like a speaker label (ends with colon or contains colon)
+        if (!strongText.includes(":") && !p.textContent?.match(/^[^:]+:/)) continue;
+        // Extract Dutch text: everything after the speaker name, minus IPA and English
+        const clone = p.cloneNode(true) as HTMLParagraphElement;
+        // Remove the speaker name <strong>
+        clone.querySelectorAll("strong").forEach(s => s.remove());
+        // Remove <em> elements (IPA and English translations)
+        clone.querySelectorAll("em").forEach(em => em.remove());
+        let text = clone.textContent?.trim() ?? "";
+        // Clean up: remove leading colon/spaces, parentheticals
+        text = text.replace(/^[:\s]+/, "");
+        text = text.replace(/\s*\(([^)]{4,})\)\s*/g, " ");
+        text = text.replace(/\/[^/]+\//g, ""); // Remove IPA in slashes
+        text = text.replace(/\s+/g, " ").trim();
+        if (!text || text.length < 2) continue;
+        p.appendChild(createBtn(text));
+      }
+    }
+  }
+
+  // Defer injection to avoid blocking first paint
+  function scheduleInjection() {
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(injectDutchAudio);
+    } else {
+      requestAnimationFrame(() => setTimeout(injectDutchAudio, 0));
+    }
+  }
+
+  scheduleInjection();
+  document.addEventListener("astro:after-swap", scheduleInjection);
+</script>

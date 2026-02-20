@@ -3,3 +3,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Astro
+node_modules/
+dist/
+.astro/
