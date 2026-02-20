@@ -1,15 +1,13 @@
 ---
 // FlashcardApp – Dutch vocabulary flashcard practice.
-// Multi-select topic grid, simple card-flip review, standalone audio via
-// Web Speech API. Designed for Starlight theme using its CSS custom properties.
+// Two-way cards (Dutch→English / English→Dutch / Mixed), single-button
+// flow, keyboard shortcuts, reshuffle. Standalone audio via Web Speech API.
 ---
 
 <flashcard-app id="flashcard-app"></flashcard-app>
 
 <script>
-/* ------------------------------------------------------------------ */
-/*  Standalone audio handler for .dutch-audio-btn anywhere on the page */
-/* ------------------------------------------------------------------ */
+/* Standalone audio handler */
 document.addEventListener("click", (e) => {
   const btn = (e.target as Element).closest?.(".dutch-audio-btn") as HTMLButtonElement | null;
   if (!btn) return;
@@ -22,32 +20,36 @@ document.addEventListener("click", (e) => {
   speechSynthesis.speak(utter);
 });
 
-/* ------------------------------------------------------------------ */
-/*  Import vocabulary data (auto-generated from content pages)         */
-/*  Regenerate with: node scripts/extract-flashcard-data.mjs           */
-/* ------------------------------------------------------------------ */
+function speakDutch(text: string) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "nl-NL";
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
 import { DECKS, type Word } from "../data/flashcard-decks";
 const TOPICS = DECKS;
 
-/* ------------------------------------------------------------------ */
-/*  Custom Element                                                     */
-/* ------------------------------------------------------------------ */
+type Direction = "nl-en" | "en-nl" | "mixed";
+
 class FlashcardApp extends HTMLElement {
-  /* state */
   selectedTopics: Set<number> = new Set();
   cards: Word[] = [];
   order: number[] = [];
   current = 0;
   flipped = false;
+  direction: Direction = "mixed";
+  /* per-card: true = show Dutch first, false = show English first */
+  showDutchFirst: boolean[] = [];
 
-  /* speaker icon SVG reused in templates */
-  static SPEAKER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+  static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+
+  private _keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
   connectedCallback() {
     this.renderTopicGrid();
   }
-
-  /* ---- helpers ---- */
 
   shuffle<T>(arr: T[]): T[] {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -57,21 +59,66 @@ class FlashcardApp extends HTMLElement {
     return arr;
   }
 
-  escapeAttr(s: string): string {
+  esc(s: string): string {
     return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  bindKeys() {
+    this.unbindKeys();
+    this._keyHandler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        this.advance();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (this.flipped) { this.current++; this.flipped = false; this.renderCard(); }
+      }
+    };
+    document.addEventListener("keydown", this._keyHandler);
+  }
+
+  unbindKeys() {
+    if (this._keyHandler) {
+      document.removeEventListener("keydown", this._keyHandler);
+      this._keyHandler = null;
+    }
+  }
+
+  advance() {
+    if (!this.flipped) {
+      this.flipped = true;
+      /* Auto-play Dutch audio when revealing Dutch side */
+      const card = this.cards[this.order[this.current]];
+      if (!this.showDutchFirst[this.current]) {
+        speakDutch(card.dutch);
+      }
+      this.renderCard();
+    } else {
+      this.current++;
+      this.flipped = false;
+      this.renderCard();
+    }
   }
 
   /* ---- topic selection screen ---- */
 
   renderTopicGrid() {
+    this.unbindKeys();
     const totalSelected = [...this.selectedTopics].reduce(
       (sum, i) => sum + TOPICS[i].words.length, 0
     );
 
+    const dirLabels: Record<Direction, string> = {
+      "nl-en": "Dutch → English",
+      "en-nl": "English → Dutch",
+      "mixed": "Mixed (both ways)",
+    };
+
     this.innerHTML = `
       <div class="fc-container">
         <h2 class="fc-heading">Choose Topics</h2>
-        <p class="fc-subheading">Select one or more topics, then press Start.</p>
+        <p class="fc-subheading">Select topics, pick a direction, then start.</p>
 
         <div class="fc-topic-grid">
           ${TOPICS.map((t, i) => `
@@ -81,6 +128,13 @@ class FlashcardApp extends HTMLElement {
               <span class="fc-topic-name">${t.name}</span>
               <span class="fc-topic-count">${t.words.length} words</span>
             </button>
+          `).join("")}
+        </div>
+
+        <div class="fc-direction">
+          ${(["nl-en", "en-nl", "mixed"] as Direction[]).map(d => `
+            <button class="fc-dir-btn ${this.direction === d ? "fc-dir-active" : ""}"
+                    data-dir="${d}" type="button">${dirLabels[d]}</button>
           `).join("")}
         </div>
 
@@ -95,44 +149,54 @@ class FlashcardApp extends HTMLElement {
         </div>
       </div>`;
 
-    /* wire up topic card clicks */
     this.querySelectorAll<HTMLButtonElement>(".fc-topic-card").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.dataset.index);
-        if (this.selectedTopics.has(idx)) {
-          this.selectedTopics.delete(idx);
-        } else {
-          this.selectedTopics.add(idx);
-        }
+        this.selectedTopics.has(idx) ? this.selectedTopics.delete(idx) : this.selectedTopics.add(idx);
         this.renderTopicGrid();
       });
     });
 
-    /* select / deselect all */
+    this.querySelectorAll<HTMLButtonElement>(".fc-dir-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        this.direction = btn.dataset.dir as Direction;
+        this.renderTopicGrid();
+      });
+    });
+
     this.querySelector("#fc-select-all")!.addEventListener("click", () => {
-      if (this.selectedTopics.size === TOPICS.length) {
-        this.selectedTopics.clear();
-      } else {
-        TOPICS.forEach((_, i) => this.selectedTopics.add(i));
-      }
+      if (this.selectedTopics.size === TOPICS.length) this.selectedTopics.clear();
+      else TOPICS.forEach((_, i) => this.selectedTopics.add(i));
       this.renderTopicGrid();
     });
 
-    /* start button */
     this.querySelector("#fc-start")!.addEventListener("click", () => {
-      if (totalSelected === 0) return;
-      this.startPractice();
+      if (totalSelected > 0) this.startPractice();
     });
   }
 
-  /* ---- practice session ---- */
-
   startPractice() {
     this.cards = [];
-    for (const i of this.selectedTopics) {
-      this.cards.push(...TOPICS[i].words);
-    }
+    for (const i of this.selectedTopics) this.cards.push(...TOPICS[i].words);
     this.order = this.shuffle([...Array(this.cards.length).keys()]);
+    this.showDutchFirst = this.order.map(() => {
+      if (this.direction === "nl-en") return true;
+      if (this.direction === "en-nl") return false;
+      return Math.random() < 0.5;
+    });
+    this.current = 0;
+    this.flipped = false;
+    this.bindKeys();
+    this.renderCard();
+  }
+
+  reshuffle() {
+    this.order = this.shuffle([...Array(this.cards.length).keys()]);
+    this.showDutchFirst = this.order.map(() => {
+      if (this.direction === "nl-en") return true;
+      if (this.direction === "en-nl") return false;
+      return Math.random() < 0.5;
+    });
     this.current = 0;
     this.flipped = false;
     this.renderCard();
@@ -141,84 +205,80 @@ class FlashcardApp extends HTMLElement {
   renderCard() {
     const total = this.order.length;
 
-    /* finished */
     if (this.current >= total) {
+      this.unbindKeys();
       this.innerHTML = `
         <div class="fc-container fc-center">
           <h2 class="fc-heading">All done!</h2>
           <p class="fc-subheading">You reviewed all ${total} cards.</p>
           <div class="fc-actions">
-            <button class="fc-btn fc-btn-secondary" id="fc-back-topics" type="button">Back to Topics</button>
+            <button class="fc-btn fc-btn-secondary" id="fc-back" type="button">Back to Topics</button>
             <button class="fc-btn fc-btn-primary" id="fc-restart" type="button">Restart</button>
           </div>
         </div>`;
-      this.querySelector("#fc-back-topics")!.addEventListener("click", () => this.renderTopicGrid());
+      this.querySelector("#fc-back")!.addEventListener("click", () => this.renderTopicGrid());
       this.querySelector("#fc-restart")!.addEventListener("click", () => this.startPractice());
       return;
     }
 
     const card = this.cards[this.order[this.current]];
+    const dutch = this.showDutchFirst[this.current];
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
+
+    /* front / back content based on direction */
+    const frontWord = dutch ? card.dutch : card.english;
+    const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+    const frontAudio = dutch
+      ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
+      : "";
+    const frontLabel = dutch ? "NL" : "EN";
+
+    const backWord = dutch ? card.english : card.dutch;
+    const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+    const backAudio = !dutch
+      ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
+      : "";
+    const backLabel = dutch ? "EN" : "NL";
 
     this.innerHTML = `
       <div class="fc-container">
         <div class="fc-toolbar">
-          <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back-topics" type="button">Back to Topics</button>
-          <span class="fc-counter">Card ${num} of ${total}</span>
+          <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back" type="button">Back</button>
+          <span class="fc-counter">${num} / ${total}</span>
+          <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
         </div>
+        <div class="fc-progress-bar"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
 
-        <div class="fc-progress-bar">
-          <div class="fc-progress-fill" style="width:${pct}%"></div>
-        </div>
-
-        <div class="fc-card ${this.flipped ? "fc-flipped" : ""}" id="fc-card">
-          ${this.flipped ? `
-            <div class="fc-card-inner">
-              <div class="fc-word">${card.dutch}</div>
-              <div class="fc-ipa">${card.ipa}</div>
-              <button class="dutch-audio-btn fc-audio-btn" data-text="${this.escapeAttr(card.dutch)}" type="button" aria-label="Listen to pronunciation">
-                ${FlashcardApp.SPEAKER_SVG}
-              </button>
+        <div class="fc-card" id="fc-card">
+          <div class="fc-card-inner">
+            <div class="fc-lang-badge">${frontLabel}</div>
+            <div class="fc-word">${frontWord}</div>
+            ${frontSub}
+            ${frontAudio}
+            ${this.flipped ? `
               <div class="fc-divider"></div>
-              <div class="fc-answer">${card.english}</div>
-            </div>
-          ` : `
-            <div class="fc-card-inner">
-              <div class="fc-word">${card.dutch}</div>
-              <div class="fc-ipa">${card.ipa}</div>
-              <button class="dutch-audio-btn fc-audio-btn" data-text="${this.escapeAttr(card.dutch)}" type="button" aria-label="Listen to pronunciation">
-                ${FlashcardApp.SPEAKER_SVG}
-              </button>
-              <div class="fc-hint">Click card to reveal answer</div>
-            </div>
-          `}
+              <div class="fc-lang-badge fc-lang-badge-answer">${backLabel}</div>
+              <div class="fc-answer">${backWord}</div>
+              ${backSub}
+              ${backAudio}
+            ` : ""}
+          </div>
         </div>
 
-        <div class="fc-actions">
-          <button class="fc-btn fc-btn-primary fc-btn-next" id="fc-next" type="button"
-                  ${!this.flipped ? "disabled" : ""}>Next</button>
-        </div>
+        <button class="fc-btn fc-btn-primary fc-btn-action" id="fc-action" type="button">
+          ${this.flipped ? "Next" : "Show Answer"}
+        </button>
+        <div class="fc-shortcut-hint">Press Space or Enter</div>
       </div>`;
 
-    /* flip on card click (but not on audio button) */
+    this.querySelector("#fc-action")!.addEventListener("click", () => this.advance());
     this.querySelector("#fc-card")!.addEventListener("click", (e) => {
       if ((e.target as Element).closest(".dutch-audio-btn")) return;
-      if (!this.flipped) {
-        this.flipped = true;
-        this.renderCard();
-      }
+      this.advance();
     });
-
-    /* next */
-    this.querySelector("#fc-next")!.addEventListener("click", () => {
-      this.current++;
-      this.flipped = false;
-      this.renderCard();
-    });
-
-    /* back to topics */
-    this.querySelector("#fc-back-topics")!.addEventListener("click", () => this.renderTopicGrid());
+    this.querySelector("#fc-back")!.addEventListener("click", () => { this.unbindKeys(); this.renderTopicGrid(); });
+    this.querySelector("#fc-reshuffle")!.addEventListener("click", () => this.reshuffle());
   }
 }
 
@@ -226,209 +286,86 @@ customElements.define("flashcard-app", FlashcardApp);
 </script>
 
 <style>
-  /* ---- layout ---- */
-  .fc-container {
-    max-width: 640px;
-    margin: 0 auto;
-  }
-  .fc-center {
-    text-align: center;
-  }
-  .fc-heading {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0 0 0.25rem;
-    color: var(--sl-color-text);
-  }
-  .fc-subheading {
-    margin: 0 0 1.25rem;
-    color: var(--sl-color-gray-3);
-    font-size: 0.95rem;
-  }
+  .fc-container { max-width: 640px; margin: 0 auto; }
+  .fc-center { text-align: center; }
+  .fc-heading { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--sl-color-text); }
+  .fc-subheading { margin: 0 0 1.25rem; color: var(--sl-color-gray-3); font-size: 0.95rem; }
 
-  /* ---- topic grid ---- */
+  /* topic grid */
   .fc-topic-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.65rem;
-    margin-bottom: 1.25rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.65rem; margin-bottom: 1rem;
   }
   .fc-topic-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
-    padding: 0.75rem 0.85rem;
-    border: 2px solid var(--sl-color-gray-4);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    text-align: left;
-    color: var(--sl-color-text);
-    transition: border-color 0.15s, background-color 0.15s;
+    position: relative; display: flex; flex-direction: column; align-items: flex-start;
+    gap: 0.15rem; padding: 0.75rem 0.85rem; border: 2px solid var(--sl-color-gray-4);
+    border-radius: 8px; background: none; cursor: pointer; text-align: left;
+    color: var(--sl-color-text); transition: border-color 0.15s, background-color 0.15s;
   }
-  .fc-topic-card:hover {
-    background-color: var(--sl-color-accent-low);
-  }
-  .fc-topic-card.fc-topic-selected {
-    border-color: var(--sl-color-accent);
-    background-color: var(--sl-color-accent-low);
-  }
-  .fc-topic-check {
-    position: absolute;
-    top: 0.45rem;
-    right: 0.6rem;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--sl-color-accent);
-    line-height: 1;
-  }
-  .fc-topic-name {
-    font-weight: 600;
-    font-size: 0.95rem;
-    line-height: 1.25;
-  }
-  .fc-topic-count {
-    font-size: 0.8rem;
-    color: var(--sl-color-gray-3);
-  }
+  .fc-topic-card:hover { background-color: var(--sl-color-accent-low); }
+  .fc-topic-card.fc-topic-selected { border-color: var(--sl-color-accent); background-color: var(--sl-color-accent-low); }
+  .fc-topic-check { position: absolute; top: 0.45rem; right: 0.6rem; font-size: 0.95rem; font-weight: 700; color: var(--sl-color-accent); line-height: 1; }
+  .fc-topic-name { font-weight: 600; font-size: 0.95rem; line-height: 1.25; }
+  .fc-topic-count { font-size: 0.8rem; color: var(--sl-color-gray-3); }
 
-  /* ---- actions bar ---- */
-  .fc-actions {
-    display: flex;
-    gap: 0.65rem;
-    justify-content: center;
-    flex-wrap: wrap;
+  /* direction picker */
+  .fc-direction { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .fc-dir-btn {
+    padding: 0.4rem 0.9rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-4); background: none;
+    color: var(--sl-color-text); transition: all 0.15s;
   }
+  .fc-dir-btn:hover { background-color: var(--sl-color-accent-low); }
+  .fc-dir-btn.fc-dir-active { background: var(--sl-color-accent); color: var(--sl-color-text-invert); border-color: transparent; }
 
-  /* ---- buttons ---- */
+  /* actions */
+  .fc-actions { display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; }
+
+  /* buttons */
   .fc-btn {
-    padding: 0.55rem 1.4rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--sl-color-gray-4);
-    background: none;
-    color: var(--sl-color-text);
-    transition: background-color 0.15s, opacity 0.15s;
+    padding: 0.55rem 1.4rem; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-4); background: none;
+    color: var(--sl-color-text); transition: background-color 0.15s, opacity 0.15s;
   }
-  .fc-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .fc-btn-primary {
-    background: var(--sl-color-accent);
-    color: var(--sl-color-text-invert);
-    border-color: transparent;
-  }
-  .fc-btn-primary:hover:not(:disabled) {
-    opacity: 0.88;
-  }
-  .fc-btn-secondary:hover:not(:disabled) {
-    background-color: var(--sl-color-accent-low);
-  }
-  .fc-btn-small {
-    padding: 0.3rem 0.85rem;
-    font-size: 0.85rem;
-  }
-  .fc-btn-next {
-    min-width: 120px;
-  }
+  .fc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .fc-btn-primary { background: var(--sl-color-accent); color: var(--sl-color-text-invert); border-color: transparent; }
+  .fc-btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .fc-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-accent-low); }
+  .fc-btn-small { padding: 0.3rem 0.85rem; font-size: 0.85rem; }
+  .fc-btn-action { display: block; width: 100%; max-width: 320px; margin: 0 auto; padding: 0.7rem 1rem; font-size: 1.05rem; }
 
-  /* ---- toolbar (back + counter) ---- */
-  .fc-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.75rem;
-  }
-  .fc-counter {
-    font-size: 0.9rem;
-    color: var(--sl-color-gray-3);
-    font-variant-numeric: tabular-nums;
-  }
+  /* toolbar */
+  .fc-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .fc-counter { font-size: 0.9rem; color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
 
-  /* ---- progress bar ---- */
-  .fc-progress-bar {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--sl-color-gray-4);
-    margin-bottom: 1.25rem;
-    overflow: hidden;
-  }
-  .fc-progress-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: var(--sl-color-accent);
-    transition: width 0.3s ease;
-  }
+  /* progress */
+  .fc-progress-bar { width: 100%; height: 6px; border-radius: 3px; background: var(--sl-color-gray-4); margin-bottom: 1.25rem; overflow: hidden; }
+  .fc-progress-fill { height: 100%; border-radius: 3px; background: var(--sl-color-accent); transition: width 0.3s ease; }
 
-  /* ---- flashcard ---- */
+  /* card */
   .fc-card {
-    border: 2px solid var(--sl-color-gray-4);
-    border-radius: 12px;
-    padding: 2.5rem 1.5rem;
-    min-height: 220px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    transition: border-color 0.2s;
-    margin-bottom: 1.25rem;
+    border: 2px solid var(--sl-color-gray-4); border-radius: 12px;
+    padding: 2rem 1.5rem; min-height: 200px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; transition: border-color 0.2s; margin-bottom: 1rem;
   }
-  .fc-card:hover {
-    border-color: var(--sl-color-accent);
+  .fc-card:hover { border-color: var(--sl-color-accent); }
+  .fc-card-inner { width: 100%; }
+  .fc-lang-badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 0.15rem 0.5rem; border-radius: 4px;
+    background: var(--sl-color-gray-4); color: var(--sl-color-text); margin-bottom: 0.5rem;
   }
-  .fc-card.fc-flipped {
-    cursor: default;
-  }
-  .fc-card-inner {
-    width: 100%;
-  }
-  .fc-word {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--sl-color-text);
-    margin-bottom: 0.3rem;
-  }
-  .fc-ipa {
-    font-size: 1rem;
-    color: var(--sl-color-gray-3);
-    margin-bottom: 0.75rem;
-  }
+  .fc-lang-badge-answer { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
+  .fc-word { font-size: 1.75rem; font-weight: 700; color: var(--sl-color-text); margin-bottom: 0.3rem; }
+  .fc-ipa { font-size: 1rem; color: var(--sl-color-gray-3); margin-bottom: 0.5rem; }
   .fc-audio-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.4rem;
-    border: 1px solid var(--sl-color-gray-4);
-    border-radius: 6px;
-    background: none;
-    color: var(--sl-color-text);
-    cursor: pointer;
-    transition: background-color 0.15s;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0.4rem;
+    border: 1px solid var(--sl-color-gray-4); border-radius: 6px; background: none;
+    color: var(--sl-color-text); cursor: pointer; transition: background-color 0.15s;
   }
-  .fc-audio-btn:hover {
-    background-color: var(--sl-color-accent-low);
-  }
-  .fc-divider {
-    width: 60px;
-    height: 1px;
-    background: var(--sl-color-gray-4);
-    margin: 1rem auto;
-  }
-  .fc-answer {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--sl-color-text-accent);
-  }
-  .fc-hint {
-    margin-top: 1rem;
-    font-size: 0.82rem;
-    color: var(--sl-color-gray-3);
-  }
+  .fc-audio-btn:hover { background-color: var(--sl-color-accent-low); }
+  .fc-divider { width: 60px; height: 1px; background: var(--sl-color-gray-4); margin: 1rem auto; }
+  .fc-answer { font-size: 1.4rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.2rem; }
+  .fc-shortcut-hint { text-align: center; font-size: 0.75rem; color: var(--sl-color-gray-3); margin-top: 0.5rem; }
 </style>
