@@ -2,6 +2,8 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
+  site: "https://dafdaf1234444.github.io",
+  base: "/dutch",
   integrations: [
     starlight({
       title: "Dutch Learning",
