@@ -44,20 +44,13 @@ const { text } = Astro.props;
 </style>
 
 <script>
+  import { speakDutch } from "../scripts/dutch-speech";
+
   class SayButton extends HTMLElement {
     connectedCallback() {
       const btn = this.querySelector("button")!;
       const text = this.dataset.text!;
-      btn.addEventListener("click", () => {
-        speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = "nl-NL";
-        utter.rate = 0.9;
-        btn.classList.add("speaking");
-        utter.onend = () => btn.classList.remove("speaking");
-        utter.onerror = () => btn.classList.remove("speaking");
-        speechSynthesis.speak(utter);
-      });
+      btn.addEventListener("click", () => speakDutch(text, btn));
     }
   }
   customElements.define("say-button", SayButton);

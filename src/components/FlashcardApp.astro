@@ -7,31 +7,20 @@
 <flashcard-app id="flashcard-app"></flashcard-app>
 
 <script>
-/* Standalone audio handler */
+import { speakDutch } from "../scripts/dutch-speech";
+import { DECKS, type Word } from "../data/flashcard-decks";
+
+/* Standalone audio handler for flashcard audio buttons */
 document.addEventListener("click", (e) => {
   const btn = (e.target as Element).closest?.(".dutch-audio-btn") as HTMLButtonElement | null;
   if (!btn) return;
   const text = btn.dataset.text;
   if (!text) return;
-  speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "nl-NL";
-  utter.rate = 0.9;
-  speechSynthesis.speak(utter);
+  speakDutch(text, btn);
 });
-
-function speakDutch(text: string) {
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "nl-NL";
-  u.rate = 0.9;
-  speechSynthesis.speak(u);
-}
-
-import { DECKS, type Word } from "../data/flashcard-decks";
 const TOPICS = DECKS;
 
-type Direction = "nl-en" | "en-nl" | "mixed";
+type Direction = "nl-en" | "en-nl" | "mixed" | "listen" | "dictation";
 
 class FlashcardApp extends HTMLElement {
   selectedTopics: Set<number> = new Set();
@@ -42,6 +31,9 @@ class FlashcardApp extends HTMLElement {
   direction: Direction = "mixed";
   /* per-card: true = show Dutch first, false = show English first */
   showDutchFirst: boolean[] = [];
+  /* dictation scoring */
+  correctCount = 0;
+  totalAnswered = 0;
 
   static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
 
@@ -89,6 +81,16 @@ class FlashcardApp extends HTMLElement {
   }
 
   advance() {
+    if (this.direction === "dictation") {
+      if (!this.flipped) {
+        this.submitDictation();
+      } else {
+        this.current++;
+        this.flipped = false;
+        this.renderCard();
+      }
+      return;
+    }
     if (!this.flipped) {
       this.flipped = true;
       /* Auto-play Dutch audio when revealing Dutch side */
@@ -116,6 +118,8 @@ class FlashcardApp extends HTMLElement {
       "nl-en": "Dutch → English",
       "en-nl": "English → Dutch",
       "mixed": "Mixed (both ways)",
+      "listen": "Listen",
+      "dictation": "Dictation",
     };
 
     this.innerHTML = `
@@ -135,7 +139,7 @@ class FlashcardApp extends HTMLElement {
         </div>
 
         <div class="fc-direction">
-          ${(["nl-en", "en-nl", "mixed"] as Direction[]).map(d => `
+          ${(["nl-en", "en-nl", "mixed", "listen", "dictation"] as Direction[]).map(d => `
             <button class="fc-dir-btn ${this.direction === d ? "fc-dir-active" : ""}"
                     data-dir="${d}" type="button">${dirLabels[d]}</button>
           `).join("")}
@@ -183,12 +187,14 @@ class FlashcardApp extends HTMLElement {
     for (const i of this.selectedTopics) this.cards.push(...TOPICS[i].words);
     this.order = this.shuffle([...Array(this.cards.length).keys()]);
     this.showDutchFirst = this.order.map(() => {
-      if (this.direction === "nl-en") return true;
+      if (this.direction === "nl-en" || this.direction === "listen" || this.direction === "dictation") return true;
       if (this.direction === "en-nl") return false;
       return Math.random() < 0.5;
     });
     this.current = 0;
     this.flipped = false;
+    this.correctCount = 0;
+    this.totalAnswered = 0;
     this.bindKeys();
     this.renderCard();
   }
@@ -196,24 +202,47 @@ class FlashcardApp extends HTMLElement {
   reshuffle() {
     this.order = this.shuffle([...Array(this.cards.length).keys()]);
     this.showDutchFirst = this.order.map(() => {
-      if (this.direction === "nl-en") return true;
+      if (this.direction === "nl-en" || this.direction === "listen" || this.direction === "dictation") return true;
       if (this.direction === "en-nl") return false;
       return Math.random() < 0.5;
     });
     this.current = 0;
     this.flipped = false;
+    this.correctCount = 0;
+    this.totalAnswered = 0;
     this.renderCard();
   }
 
-  renderCard() {
+  checkAnswer(input: string, correct: string): boolean {
+    const normalize = (s: string) => s.toLowerCase().trim().replace(/[?!.,;:'"]/g, "");
+    return normalize(input) === normalize(correct);
+  }
+
+  submitDictation() {
+    if (this.flipped) return;
+    const input = this.querySelector<HTMLInputElement>(".fc-dictation-input");
+    if (!input) return;
+    const userAnswer = input.value;
+    const card = this.cards[this.order[this.current]];
+    const isCorrect = this.checkAnswer(userAnswer, card.dutch);
+    this.totalAnswered++;
+    if (isCorrect) this.correctCount++;
+    this.flipped = true;
+    this.renderCard(userAnswer);
+  }
+
+  renderCard(dictationAnswer?: string) {
     const total = this.order.length;
 
     if (this.current >= total) {
       this.unbindKeys();
+      const isDictation = this.direction === "dictation";
+      const scorePct = this.totalAnswered > 0 ? Math.round((this.correctCount / this.totalAnswered) * 100) : 0;
       this.innerHTML = `
         <div class="fc-container fc-center">
           <h2 class="fc-heading">All done!</h2>
           <p class="fc-subheading">You reviewed all ${total} cards.</p>
+          ${isDictation ? `<p class="fc-score-final">${this.correctCount} / ${this.totalAnswered} correct (${scorePct}%)</p>` : ""}
           <div class="fc-actions">
             <button class="fc-btn fc-btn-secondary" id="fc-back" type="button">Back to Topics</button>
             <button class="fc-btn fc-btn-primary" id="fc-restart" type="button">Restart</button>
@@ -226,23 +255,94 @@ class FlashcardApp extends HTMLElement {
 
     const card = this.cards[this.order[this.current]];
     const dutch = this.showDutchFirst[this.current];
+    const isListen = this.direction === "listen";
+    const isDictation = this.direction === "dictation";
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
 
-    /* front / back content based on direction */
-    const frontWord = dutch ? card.dutch : card.english;
-    const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
-    const frontAudio = dutch
-      ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
-      : "";
-    const frontLabel = dutch ? "NL" : "EN";
+    let cardInner: string;
 
-    const backWord = dutch ? card.english : card.dutch;
-    const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
-    const backAudio = !dutch
-      ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
-      : "";
-    const backLabel = dutch ? "EN" : "NL";
+    if (isDictation && !this.flipped) {
+      // Dictation mode front: audio button + text input + check button
+      cardInner = `
+        <div class="fc-card-inner">
+          <div class="fc-lang-badge">DICTATION</div>
+          <button class="dutch-audio-btn fc-audio-btn fc-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+          <div class="fc-dictation-form">
+            <input type="text" class="fc-dictation-input" placeholder="Type what you hear..." autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <button class="fc-btn fc-btn-primary fc-dictation-check" type="button">Check Answer</button>
+          </div>
+        </div>`;
+    } else if (isDictation && this.flipped) {
+      // Dictation mode back: show result
+      const userAnswer = dictationAnswer ?? "";
+      const isCorrect = this.checkAnswer(userAnswer, card.dutch);
+      cardInner = `
+        <div class="fc-card-inner">
+          <div class="fc-dictation-result ${isCorrect ? "fc-dictation-correct" : "fc-dictation-wrong"}">
+            <div class="fc-dictation-status">${isCorrect ? "&#10003; Correct!" : "&#10007; Incorrect"}</div>
+            ${!isCorrect ? `<div class="fc-dictation-your">Your answer: <span class="fc-dictation-diff">${this.esc(userAnswer) || "(empty)"}</span></div>` : ""}
+            <div class="fc-dictation-answer">
+              <span>${card.dutch}</span>
+              <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+            </div>
+            ${card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : ""}
+            <div class="fc-divider"></div>
+            <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
+            <div class="fc-answer">${card.english}</div>
+          </div>
+        </div>`;
+    } else if (isListen && !this.flipped) {
+      // Listen mode front: only audio button + "?"
+      cardInner = `
+        <div class="fc-card-inner">
+          <div class="fc-lang-badge">LISTEN</div>
+          <button class="dutch-audio-btn fc-audio-btn fc-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+          <div class="fc-listen-hint">?</div>
+        </div>`;
+    } else if (isListen && this.flipped) {
+      // Listen mode back: show Dutch + English + IPA
+      cardInner = `
+        <div class="fc-card-inner">
+          <div class="fc-lang-badge">NL</div>
+          <div class="fc-word">${card.dutch}</div>
+          ${card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : ""}
+          <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+          <div class="fc-divider"></div>
+          <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
+          <div class="fc-answer">${card.english}</div>
+        </div>`;
+    } else {
+      // Normal modes
+      const frontWord = dutch ? card.dutch : card.english;
+      const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+      const frontAudio = dutch
+        ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
+        : "";
+      const frontLabel = dutch ? "NL" : "EN";
+
+      const backWord = dutch ? card.english : card.dutch;
+      const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+      const backAudio = !dutch
+        ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
+        : "";
+      const backLabel = dutch ? "EN" : "NL";
+
+      cardInner = `
+        <div class="fc-card-inner">
+          <div class="fc-lang-badge">${frontLabel}</div>
+          <div class="fc-word">${frontWord}</div>
+          ${frontSub}
+          ${frontAudio}
+          ${this.flipped ? `
+            <div class="fc-divider"></div>
+            <div class="fc-lang-badge fc-lang-badge-answer">${backLabel}</div>
+            <div class="fc-answer">${backWord}</div>
+            ${backSub}
+            ${backAudio}
+          ` : ""}
+        </div>`;
+    }
 
     /* Build word list for the bottom panel */
     const wordListRows = this.order.map((idx, pos) => {
@@ -252,7 +352,7 @@ class FlashcardApp extends HTMLElement {
       const visited = pos < this.current;
       const cls = isCurrent ? "fc-wl-current" : visited ? "fc-wl-visited" : "";
       /* Show only the "question" side; hover reveals answer */
-      const shown = isDutchFirst ? this.esc(w.dutch) : this.esc(w.english);
+      const shown = (isListen || isDictation) ? "..." : (isDutchFirst ? this.esc(w.dutch) : this.esc(w.english));
       const hidden = isDutchFirst ? this.esc(w.english) : this.esc(w.dutch);
       return `<tr class="${cls}" data-pos="${pos}"><td class="fc-wl-num">${pos + 1}</td><td class="fc-wl-shown">${shown}</td><td class="fc-wl-hidden">${hidden}</td></tr>`;
     }).join("");
@@ -261,7 +361,7 @@ class FlashcardApp extends HTMLElement {
       <div class="fc-container">
         <div class="fc-toolbar">
           <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back" type="button">Back</button>
-          <span class="fc-counter">${num} / ${total}</span>
+          <span class="fc-counter">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score">${this.correctCount}/${this.totalAnswered}</span> · ` : ""}${num} / ${total}</span>
           <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
         </div>
         <div class="fc-progress-bar"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
@@ -269,19 +369,7 @@ class FlashcardApp extends HTMLElement {
         <div class="fc-card-row">
           <button class="fc-nav fc-nav-prev ${this.current === 0 ? "fc-nav-disabled" : ""}" id="fc-prev" type="button" title="Previous card" aria-label="Previous card">&#8249;</button>
           <div class="fc-card" id="fc-card">
-            <div class="fc-card-inner">
-              <div class="fc-lang-badge">${frontLabel}</div>
-              <div class="fc-word">${frontWord}</div>
-              ${frontSub}
-              ${frontAudio}
-              ${this.flipped ? `
-                <div class="fc-divider"></div>
-                <div class="fc-lang-badge fc-lang-badge-answer">${backLabel}</div>
-                <div class="fc-answer">${backWord}</div>
-                ${backSub}
-                ${backAudio}
-              ` : ""}
-            </div>
+            ${cardInner}
           </div>
           <button class="fc-nav fc-nav-next" id="fc-next" type="button" title="${this.flipped ? "Next card" : "Show Answer"}" aria-label="Next">&#8250;</button>
         </div>
@@ -302,10 +390,31 @@ class FlashcardApp extends HTMLElement {
     });
     this.querySelector("#fc-card")!.addEventListener("click", (e) => {
       if ((e.target as Element).closest(".dutch-audio-btn")) return;
+      if ((e.target as Element).closest(".fc-dictation-form")) return;
+      if (isDictation && !this.flipped) return;
       this.advance();
     });
     this.querySelector("#fc-back")!.addEventListener("click", () => { this.unbindKeys(); this.renderTopicGrid(); });
     this.querySelector("#fc-reshuffle")!.addEventListener("click", () => this.reshuffle());
+
+    // Dictation mode: wire up check button and Enter key on input
+    if (isDictation && !this.flipped) {
+      const checkBtn = this.querySelector(".fc-dictation-check");
+      if (checkBtn) checkBtn.addEventListener("click", () => this.submitDictation());
+      const input = this.querySelector<HTMLInputElement>(".fc-dictation-input");
+      if (input) {
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); this.submitDictation(); }
+        });
+        setTimeout(() => input.focus(), 50);
+      }
+    }
+
+    // Auto-play in Listen and Dictation mode
+    if ((isListen || isDictation) && !this.flipped) {
+      setTimeout(() => speakDutch(card.dutch), 150);
+    }
+
     /* Click word list row to jump to that card */
     this.querySelectorAll<HTMLTableRowElement>(".fc-wordlist tr[data-pos]").forEach(row => {
       row.addEventListener("click", () => {
@@ -416,6 +525,32 @@ customElements.define("flashcard-app", FlashcardApp);
   .fc-divider { width: 60px; height: 1px; background: var(--sl-color-gray-5); margin: 1rem auto; }
   .fc-answer { font-size: 1.4rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.2rem; }
   .fc-shortcut-hint { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-bottom: 1rem; }
+
+  /* listen mode */
+  .fc-listen-btn { transform: scale(2); margin: 1rem 0; }
+  .fc-listen-hint { font-size: 2.5rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.75rem; }
+
+  /* dictation mode */
+  .fc-dictation-form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; width: 100%; }
+  .fc-dictation-input {
+    width: 100%; padding: 0.65rem 0.85rem; font-size: 1.1rem; font-family: inherit;
+    border: 2px solid var(--sl-color-gray-5); border-radius: 0.5rem;
+    background: var(--sl-color-black); color: var(--sl-color-white);
+    text-align: center; outline: none; transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .fc-dictation-input:focus { border-color: var(--sl-color-text-accent); }
+  .fc-dictation-input::placeholder { color: var(--sl-color-gray-3); }
+  .fc-dictation-check { align-self: center; }
+  .fc-dictation-result { width: 100%; }
+  .fc-dictation-status { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .fc-dictation-correct .fc-dictation-status { color: #4ade80; }
+  .fc-dictation-wrong .fc-dictation-status { color: #f87171; }
+  .fc-dictation-your { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-bottom: 0.5rem; }
+  .fc-dictation-diff { color: #f87171; font-weight: 600; }
+  .fc-dictation-answer { font-size: 1.4rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+  .fc-score { color: var(--sl-color-text-accent); font-weight: 600; }
+  .fc-score-final { font-size: 1.25rem; font-weight: 700; color: var(--sl-color-text-accent); margin-bottom: 1.25rem; }
 
   /* word list panel */
   .fc-wordlist-toggle { margin-top: 0.5rem; }

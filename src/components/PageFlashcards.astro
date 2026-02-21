@@ -7,6 +7,8 @@
 <page-flashcards id="page-flashcards"></page-flashcards>
 
 <script>
+import { speakDutch } from "../scripts/dutch-speech";
+
 const DUTCH_HEADERS = new Set([
   "dutch", "dutch word", "dutch expression", "dutch phrase",
   "example", "example sentence", "example sentences",
@@ -41,14 +43,6 @@ function cleanText(cell: Element): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function speakDutch(text: string) {
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "nl-NL";
-  u.rate = 0.9;
-  speechSynthesis.speak(u);
-}
-
 function extractCards(): Card[] {
   const cards: Card[] = [];
   const seen = new Set<string>();
@@ -79,7 +73,7 @@ function extractCards(): Card[] {
   return cards;
 }
 
-type Dir = "nl-en" | "en-nl" | "mixed";
+type Dir = "nl-en" | "en-nl" | "mixed" | "listen";
 
 class PageFlashcards extends HTMLElement {
   cards: Card[] = [];
@@ -146,7 +140,7 @@ class PageFlashcards extends HTMLElement {
   buildOrder() {
     this.order = this.shuffle([...Array(this.cards.length).keys()]);
     this.showDutchFirst = this.order.map(() => {
-      if (this.direction === "nl-en") return true;
+      if (this.direction === "nl-en" || this.direction === "listen") return true;
       if (this.direction === "en-nl") return false;
       return Math.random() < 0.5;
     });
@@ -162,6 +156,7 @@ class PageFlashcards extends HTMLElement {
             <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL→EN</button>
             <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN→NL</button>
             <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
+            <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
           </div>
           <button class="pf-start-btn" id="pf-start" type="button">
             Practice these words (${this.cards.length} cards)
@@ -213,18 +208,53 @@ class PageFlashcards extends HTMLElement {
 
     const card = this.cards[this.order[this.current]];
     const dutch = this.showDutchFirst[this.current];
+    const isListen = this.direction === "listen";
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
 
-    const frontWord = dutch ? card.dutch : card.english;
-    const frontSub = dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
-    const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
-    const fLabel = dutch ? "NL" : "EN";
+    let cardContent: string;
 
-    const backWord = dutch ? card.english : card.dutch;
-    const backSub = !dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
-    const backAudio = !dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
-    const bLabel = dutch ? "EN" : "NL";
+    if (isListen && !this.flipped) {
+      // Listen mode front: only audio button + "?"
+      cardContent = `
+        <div class="pf-badge">LISTEN</div>
+        <button class="dutch-audio-btn pf-audio pf-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
+        <div class="pf-listen-hint">?</div>`;
+    } else if (isListen && this.flipped) {
+      // Listen mode back: show Dutch + English + IPA
+      cardContent = `
+        <div class="pf-badge">NL</div>
+        <div class="pf-word">${card.dutch}</div>
+        ${card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : ""}
+        <button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
+        <div class="pf-reveal-divider"></div>
+        <div class="pf-badge pf-badge-answer">EN</div>
+        <div class="pf-answer">${card.english}</div>`;
+    } else {
+      // Normal modes
+      const frontWord = dutch ? card.dutch : card.english;
+      const frontSub = dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
+      const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
+      const fLabel = dutch ? "NL" : "EN";
+
+      const backWord = dutch ? card.english : card.dutch;
+      const backSub = !dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
+      const backAudio = !dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
+      const bLabel = dutch ? "EN" : "NL";
+
+      cardContent = `
+        <div class="pf-badge">${fLabel}</div>
+        <div class="pf-word">${frontWord}</div>
+        ${frontSub}
+        ${frontAudio}
+        ${this.flipped ? `
+          <div class="pf-reveal-divider"></div>
+          <div class="pf-badge pf-badge-answer">${bLabel}</div>
+          <div class="pf-answer">${backWord}</div>
+          ${backSub}
+          ${backAudio}
+        ` : ""}`;
+    }
 
     this.innerHTML = `
       <div class="pf-section">
@@ -239,17 +269,7 @@ class PageFlashcards extends HTMLElement {
         <div class="pf-card-row">
           <button class="pf-nav ${this.current === 0 ? "pf-nav-disabled" : ""}" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
           <div class="pf-card" id="pf-card">
-            <div class="pf-badge">${fLabel}</div>
-            <div class="pf-word">${frontWord}</div>
-            ${frontSub}
-            ${frontAudio}
-            ${this.flipped ? `
-              <div class="pf-reveal-divider"></div>
-              <div class="pf-badge pf-badge-answer">${bLabel}</div>
-              <div class="pf-answer">${backWord}</div>
-              ${backSub}
-              ${backAudio}
-            ` : ""}
+            ${cardContent}
           </div>
           <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
         </div>
@@ -268,6 +288,11 @@ class PageFlashcards extends HTMLElement {
     });
     this.querySelector("#pf-close")!.addEventListener("click", () => { this.unbindKeys(); this.renderButton(); });
     this.querySelector("#pf-reshuffle")!.addEventListener("click", () => this.reshuffle());
+
+    // Auto-play in Listen mode
+    if (isListen && !this.flipped) {
+      setTimeout(() => speakDutch(card.dutch), 150);
+    }
   }
 }
 
@@ -359,6 +384,10 @@ customElements.define("page-flashcards", PageFlashcards);
   .pf-btn-primary:hover:not(:disabled) { opacity: 0.88; }
   .pf-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
   .pf-btn-small { padding: 0.25rem 0.7rem; font-size: var(--sl-text-2xs); }
+
+  /* listen mode */
+  .pf-listen-btn { transform: scale(1.8); margin: 0.75rem 0; }
+  .pf-listen-hint { font-size: 2rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.5rem; }
 
   /* flashcard link */
   .pf-fc-link { text-align: center; margin-top: 0.5rem; }

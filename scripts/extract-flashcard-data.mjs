@@ -29,6 +29,9 @@ const SOURCES = [
   { file: "phrases/idioms-expressions.mdx", name: "Idioms & Expressions" },
   { file: "vocabulary/cefr-a1.mdx", name: "CEFR A1" },
   { file: "vocabulary/cefr-a2.mdx", name: "CEFR A2" },
+  { file: "phrases/fun-stories.mdx", name: "Fun Stories" },
+  { file: "phrases/audio-stories.mdx", name: "Audio Stories" },
+  { file: "phrases/dialogues.mdx", name: "Dialogues" },
 ];
 
 // Column headers that contain Dutch text
@@ -92,7 +95,7 @@ function parseTable(lines) {
     const english = englishCol >= 0 ? cleanText(cells[englishCol] || "") : "";
     const ipa = ipaCol >= 0 ? cleanIPA(cells[ipaCol] || "") : "";
 
-    if (dutch && dutch.length > 0 && !dutch.startsWith("#")) {
+    if (dutch && dutch.length > 0 && !dutch.startsWith("#") && english) {
       entries.push({ dutch, english, ipa });
     }
   }

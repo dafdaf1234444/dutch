@@ -17,7 +17,7 @@ npm run preview      # Preview production build
 src/
 ├── components/
 │   ├── DutchAudio.astro      # Auto-injects speaker buttons into tables & dialogues
-│   ├── FlashcardApp.astro    # Main flashcard practice app (20 decks, 1,277 cards)
+│   ├── FlashcardApp.astro    # Main flashcard practice app (23 decks, 1,615 cards)
 │   ├── PageFlashcards.astro  # Per-page flashcard widget (auto-extracts from tables)
 │   ├── Say.astro             # Inline pronunciation button: <Say text="hallo" />
 │   └── ExternalLinks.astro   # Opens external links in new tabs
@@ -80,11 +80,17 @@ Auto-injects speaker buttons into table cells and blockquote dialogues using Web
 
 English in `*(italics)*` or `(parentheses)` is stripped before speaking.
 
+### IPA Coverage
+
+All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑloː/` ``). This covers vocabulary tables, grammar tables (verbs, diminutives, articles, word order, patterns), phrase pages, and dialogue pages. The extraction script picks up IPA columns automatically.
+
 ### Flashcard System
+
+**Five practice modes:** Dutch→English, English→Dutch, Mixed, Listen (audio-only), Dictation (type what you hear with scoring).
 
 Two independent extraction mechanisms:
 
-1. **Global** (FlashcardApp): `node scripts/extract-flashcard-data.mjs` generates `src/data/flashcard-decks.ts` from 20 MDX files
+1. **Global** (FlashcardApp): `node scripts/extract-flashcard-data.mjs` generates `src/data/flashcard-decks.ts` from 23 MDX files
 2. **Per-page** (PageFlashcards): Reads DOM tables at runtime, no pre-processing needed
 
 To add words to global flashcards: update MDX tables, then re-run the extraction script.

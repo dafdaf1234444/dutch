@@ -2,11 +2,14 @@
 // This component auto-injects speaker buttons into:
 // 1. Table cells with Dutch content (matching column headers)
 // 2. Blockquote dialogues (lines starting with **Name:** ...)
+// Also injects a collapsible Audio Player panel above the first audio table.
 // Strips English translations before speaking.
-// Optimized: event delegation, template cloning, deferred execution.
 ---
 
 <script>
+  import { speakDutch, stopAll } from "../scripts/dutch-speech";
+  import { buildAudioPanel, type SentenceGroup } from "../scripts/audio-panel";
+
   const AUDIO_HEADERS = new Set([
     // Vocabulary tables
     "dutch", "dutch word", "dutch expression", "dutch phrase",
@@ -72,19 +75,26 @@
     if (!btn) return;
     const text = btn.dataset.text;
     if (!text) return;
-    speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "nl-NL";
-    utter.rate = 0.9;
-    btn.classList.add("speaking");
-    utter.onend = () => btn.classList.remove("speaking");
-    utter.onerror = () => btn.classList.remove("speaking");
-    speechSynthesis.speak(utter);
+    speakDutch(text, btn);
   });
 
+  // Find the nearest preceding heading for a given element
+  function findHeading(el: Element): string {
+    let prev = el.previousElementSibling;
+    while (prev) {
+      if (/^H[23]$/.test(prev.tagName)) {
+        return prev.textContent?.trim() ?? "Untitled";
+      }
+      prev = prev.previousElementSibling;
+    }
+    return "Untitled";
+  }
+
   function injectDutchAudio() {
-    // 1. Handle tables
     const tables = document.querySelectorAll("table");
+    const audioTables: HTMLTableElement[] = [];
+    const groups: SentenceGroup[] = [];
+
     for (const table of tables) {
       const headers = table.querySelectorAll("thead th");
       const audioColIndices: number[] = [];
@@ -96,47 +106,66 @@
       });
       if (audioColIndices.length === 0) continue;
 
+      audioTables.push(table as HTMLTableElement);
+
+      // Collect sentences for the audio panel
+      const heading = findHeading(table);
+      const sentences: { text: string; display: string }[] = [];
+
       const rows = table.querySelectorAll("tbody tr");
       for (const row of rows) {
         const cells = row.querySelectorAll("td");
+        const rowTexts: string[] = [];
+        const rowDisplays: string[] = [];
         for (const colIdx of audioColIndices) {
           const cell = cells[colIdx];
           if (!cell || cell.querySelector(".dutch-audio-btn")) continue;
           const text = getDutchText(cell);
           if (!text) continue;
           cell.appendChild(createBtn(text));
+          rowTexts.push(text);
+          rowDisplays.push(text);
         }
+        if (rowTexts.length > 0) {
+          sentences.push({
+            text: rowTexts.join(". "),
+            display: rowDisplays.join(" — "),
+          });
+        }
+      }
+
+      if (sentences.length > 0) {
+        groups.push({ label: heading, sentences });
       }
     }
 
-    // 2. Handle blockquote dialogues (Mini Dialogues in vocabulary pages)
+    // Handle blockquote dialogues
     const blockquotes = document.querySelectorAll("blockquote");
     for (const bq of blockquotes) {
       const paragraphs = bq.querySelectorAll("p");
       for (const p of paragraphs) {
-        // Skip if already has a button
         if (p.querySelector(".dutch-audio-btn")) continue;
-        // Match lines with bold speaker name: **Name:** Dutch text
         const strong = p.querySelector("strong");
         if (!strong) continue;
         const strongText = strong.textContent ?? "";
-        // Must look like a speaker label (ends with colon or contains colon)
         if (!strongText.includes(":") && !p.textContent?.match(/^[^:]+:/)) continue;
-        // Extract Dutch text: everything after the speaker name, minus IPA and English
         const clone = p.cloneNode(true) as HTMLParagraphElement;
-        // Remove the speaker name <strong>
         clone.querySelectorAll("strong").forEach(s => s.remove());
-        // Remove <em> elements (IPA and English translations)
         clone.querySelectorAll("em").forEach(em => em.remove());
         let text = clone.textContent?.trim() ?? "";
-        // Clean up: remove leading colon/spaces, parentheticals
         text = text.replace(/^[:\s]+/, "");
         text = text.replace(/\s*\(([^)]{4,})\)\s*/g, " ");
-        text = text.replace(/\/[^/]+\//g, ""); // Remove IPA in slashes
+        text = text.replace(/\/[^/]+\//g, "");
         text = text.replace(/\s+/g, " ").trim();
         if (!text || text.length < 2) continue;
         p.appendChild(createBtn(text));
       }
+    }
+
+    // Inject Audio Player panel before the first audio table
+    if (audioTables.length > 0 && groups.length > 0) {
+      const panel = buildAudioPanel(groups);
+      audioTables[0].parentElement?.insertBefore(panel, audioTables[0]);
     }
   }
 
@@ -148,6 +177,11 @@
       requestAnimationFrame(() => setTimeout(injectDutchAudio, 0));
     }
   }
+
+  // Stop audio on page navigation
+  document.addEventListener("astro:before-swap", () => {
+    stopAll();
+  });
 
   scheduleInjection();
   document.addEventListener("astro:after-swap", scheduleInjection);
