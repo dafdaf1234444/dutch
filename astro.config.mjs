@@ -5,6 +5,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Dutch Learning",
+      pagination: false,
       customCss: ["./src/styles/custom.css"],
       sidebar: [
         {
@@ -22,6 +23,8 @@ export default defineConfig({
             { label: "Verbs: Present Tense", slug: "grammar/verbs-present-tense" },
             { label: "Word Order", slug: "grammar/word-order" },
             { label: "Diminutives", slug: "grammar/diminutives" },
+            { label: "Patterns & Rules", slug: "grammar/patterns-rules" },
+            { label: "Grammar in Action", slug: "grammar/grammar-in-action" },
           ],
         },
         {
@@ -33,6 +36,7 @@ export default defineConfig({
             { label: "Idioms & Expressions", slug: "phrases/idioms-expressions" },
             { label: "Dialogues", slug: "phrases/dialogues" },
             { label: "Audio Stories", slug: "phrases/audio-stories" },
+            { label: "Fun Stories", slug: "phrases/fun-stories" },
           ],
         },
         {

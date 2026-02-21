@@ -17,6 +17,8 @@ const DUTCH_HEADERS = new Set([
   "sentence", "base verb", "prefix",
   "normal", "inverted (question)",
   "name", "spelling", "ik", "jij", "hij/zij/het", "wij",
+  "raw stem", "position 1", "verb", "subject", "rest",
+  "example words", "proof (vowel follows)",
 ]);
 const ENGLISH_HEADERS = new Set(["english", "meaning", "translation", "english meaning"]);
 const IPA_HEADERS = new Set(["ipa", "pronunciation"]);
@@ -31,6 +33,11 @@ function cleanText(cell: Element): string {
   text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) =>
     inner.length > 3 ? " " : `(${inner})`
   );
+  // Strip IPA in square brackets [hɔnt] and slashes /maːn/
+  text = text.replace(/\[[^\]]*\]/g, "");
+  text = text.replace(/\/[^/]+\//g, "");
+  // Strip arrow symbols (used in devoicing tables)
+  text = text.replace(/→/g, "");
   return text.replace(/\s+/g, " ").trim();
 }
 
@@ -112,6 +119,8 @@ class PageFlashcards extends HTMLElement {
     this._kh = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === " " || e.key === "Enter") { e.preventDefault(); this.advance(); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); if (this.flipped) { this.current++; this.flipped = false; this.renderCard(); } }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); if (this.current > 0) { this.current--; this.flipped = false; this.renderCard(); } }
     };
     document.addEventListener("keydown", this._kh);
   }
@@ -157,6 +166,7 @@ class PageFlashcards extends HTMLElement {
           <button class="pf-start-btn" id="pf-start" type="button">
             Practice these words (${this.cards.length} cards)
           </button>
+          <div class="pf-fc-link"><a href="/flashcards/">Practice all topics &rarr;</a></div>
         </div>
       </div>`;
     this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
@@ -226,27 +236,32 @@ class PageFlashcards extends HTMLElement {
         </div>
         <div class="pf-progress"><div class="pf-progress-fill" style="width:${pct}%"></div></div>
 
-        <div class="pf-card" id="pf-card">
-          <div class="pf-badge">${fLabel}</div>
-          <div class="pf-word">${frontWord}</div>
-          ${frontSub}
-          ${frontAudio}
-          ${this.flipped ? `
-            <div class="pf-reveal-divider"></div>
-            <div class="pf-badge pf-badge-answer">${bLabel}</div>
-            <div class="pf-answer">${backWord}</div>
-            ${backSub}
-            ${backAudio}
-          ` : ""}
+        <div class="pf-card-row">
+          <button class="pf-nav ${this.current === 0 ? "pf-nav-disabled" : ""}" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
+          <div class="pf-card" id="pf-card">
+            <div class="pf-badge">${fLabel}</div>
+            <div class="pf-word">${frontWord}</div>
+            ${frontSub}
+            ${frontAudio}
+            ${this.flipped ? `
+              <div class="pf-reveal-divider"></div>
+              <div class="pf-badge pf-badge-answer">${bLabel}</div>
+              <div class="pf-answer">${backWord}</div>
+              ${backSub}
+              ${backAudio}
+            ` : ""}
+          </div>
+          <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
         </div>
 
-        <button class="pf-btn pf-btn-primary pf-btn-action" id="pf-action" type="button">
-          ${this.flipped ? "Next" : "Show Answer"}
-        </button>
-        <div class="pf-key-hint">Space / Enter</div>
+        <div class="pf-key-hint">&larr; Prev &nbsp; Space / Enter &nbsp; Next &rarr;</div>
+        <div class="pf-fc-link"><a href="/flashcards/">Practice all topics &rarr;</a></div>
       </div>`;
 
-    this.querySelector("#pf-action")!.addEventListener("click", () => this.advance());
+    this.querySelector("#pf-next")!.addEventListener("click", () => this.advance());
+    this.querySelector("#pf-prev")!.addEventListener("click", () => {
+      if (this.current > 0) { this.current--; this.flipped = false; this.renderCard(); }
+    });
     this.querySelector("#pf-card")!.addEventListener("click", (e) => {
       if ((e.target as Element).closest(".dutch-audio-btn")) return;
       this.advance();
@@ -261,75 +276,94 @@ customElements.define("page-flashcards", PageFlashcards);
 
 <style>
   .pf-section { max-width: 540px; margin: 2rem auto 0; }
-  .pf-divider { height: 1px; background: var(--sl-color-gray-4); margin-bottom: 1.5rem; }
+  .pf-divider { height: 1px; background: var(--sl-color-hairline); margin-bottom: 1.5rem; }
 
   /* start area */
   .pf-start-row { display: flex; flex-direction: column; gap: 0.6rem; }
   .pf-dir-row { display: flex; gap: 0.35rem; justify-content: center; }
   .pf-dir {
-    padding: 0.3rem 0.7rem; border-radius: 5px; font-size: 0.8rem; font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-4); background: none;
-    color: var(--sl-color-text); transition: all 0.15s;
+    padding: 0.3rem 0.7rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
+    color: var(--sl-color-white); transition: all 0.15s;
   }
-  .pf-dir:hover { background-color: var(--sl-color-accent-low); }
-  .pf-dir.pf-dir-on { background: var(--sl-color-accent); color: var(--sl-color-text-invert); border-color: transparent; }
+  .pf-dir:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+  .pf-dir.pf-dir-on { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
 
   .pf-start-btn {
     display: block; width: 100%; padding: 0.75rem 1rem;
-    border: 2px solid var(--sl-color-accent); border-radius: 8px;
-    background: none; color: var(--sl-color-accent);
-    font-size: 1rem; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent); border-radius: 999rem;
+    background: none; color: var(--sl-color-text-accent);
+    font-size: var(--sl-text-sm); font-weight: 600; cursor: pointer;
     transition: background-color 0.15s, color 0.15s;
   }
-  .pf-start-btn:hover { background: var(--sl-color-accent); color: var(--sl-color-text-invert); }
+  .pf-start-btn:hover { background: var(--sl-color-text-accent); color: var(--sl-color-black); }
 
   /* toolbar */
   .pf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-  .pf-counter { font-size: 0.85rem; color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
-  .pf-progress { width: 100%; height: 5px; border-radius: 3px; background: var(--sl-color-gray-4); margin-bottom: 1rem; overflow: hidden; }
-  .pf-progress-fill { height: 100%; border-radius: 3px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+  .pf-counter { font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
+  .pf-progress { width: 100%; height: 4px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 1rem; overflow: hidden; }
+  .pf-progress-fill { height: 100%; border-radius: 2px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+
+  /* card row with nav arrows */
+  .pf-card-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .pf-nav {
+    flex-shrink: 0; width: 34px; height: 70px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; line-height: 1; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
+    background: none; color: var(--sl-color-gray-3); cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .pf-nav:hover:not(.pf-nav-disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); color: var(--sl-color-white); }
+  .pf-nav-disabled { opacity: 0.2; cursor: default; }
 
   /* card */
   .pf-card {
-    border: 2px solid var(--sl-color-gray-4); border-radius: 10px;
+    flex: 1; min-width: 0;
+    border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
     padding: 1.75rem 1.25rem; min-height: 160px; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; transition: border-color 0.2s; margin-bottom: 1rem;
+    text-align: center; background: var(--sl-color-black);
+    box-shadow: var(--sl-shadow-sm); transition: border-color 0.2s, background-color 0.2s;
   }
-  .pf-card:hover { border-color: var(--sl-color-accent); }
+  .pf-card:hover { border-color: var(--sl-color-gray-2); background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); }
   .pf-badge {
-    display: inline-block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; padding: 0.1rem 0.4rem; border-radius: 3px;
-    background: var(--sl-color-gray-4); color: var(--sl-color-text); margin-bottom: 0.4rem;
+    display: inline-block; font-size: var(--sl-text-2xs); font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 0.1rem 0.4rem; border-radius: 0.25rem;
+    background: var(--sl-color-gray-5); color: var(--sl-color-gray-2); margin-bottom: 0.4rem;
   }
-  .pf-badge-answer { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
-  .pf-word { font-size: 1.5rem; font-weight: 700; color: var(--sl-color-text); margin-bottom: 0.2rem; }
-  .pf-ipa { font-size: 0.9rem; color: var(--sl-color-gray-3); margin-bottom: 0.4rem; }
+  .pf-badge-answer { background: var(--sl-color-accent-low); color: var(--sl-color-accent-high); }
+  .pf-word { font-size: 1.5rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.2rem; line-height: var(--sl-line-height-headings); }
+  .pf-ipa { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-bottom: 0.4rem; }
   .pf-audio {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 0.3rem; border: 1px solid var(--sl-color-gray-4); border-radius: 5px;
-    background: none; color: var(--sl-color-text); cursor: pointer;
+    padding: 0.3rem; border: none; border-radius: 50%;
+    background: none; color: var(--sl-color-gray-3); cursor: pointer;
+    transition: color 0.15s, background-color 0.15s, transform 0.15s;
   }
-  .pf-audio:hover { background-color: var(--sl-color-accent-low); }
-  .pf-reveal-divider { width: 50px; height: 1px; background: var(--sl-color-gray-4); margin: 0.7rem 0; }
+  .pf-audio:hover { color: var(--sl-color-text-accent); background-color: var(--sl-color-accent-low); transform: scale(1.1); }
+  .pf-reveal-divider { width: 50px; height: 1px; background: var(--sl-color-gray-5); margin: 0.7rem 0; }
   .pf-answer { font-size: 1.2rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.15rem; }
 
-  /* action button */
-  .pf-btn-action { display: block; width: 100%; padding: 0.65rem 1rem; font-size: 1rem; }
-  .pf-key-hint { text-align: center; font-size: 0.7rem; color: var(--sl-color-gray-3); margin-top: 0.4rem; }
+  /* key hint */
+  .pf-key-hint { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
 
   /* done */
   .pf-done { text-align: center; }
-  .pf-done p { color: var(--sl-color-text); margin-bottom: 1rem; }
+  .pf-done p { color: var(--sl-color-white); margin-bottom: 1rem; }
   .pf-actions { display: flex; gap: 0.5rem; justify-content: center; }
   .pf-btn {
-    padding: 0.45rem 1.2rem; border-radius: 7px; font-size: 0.9rem; font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-4); background: none;
-    color: var(--sl-color-text); transition: background-color 0.15s, opacity 0.15s;
+    padding: 0.45rem 1.2rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
+    color: var(--sl-color-white); transition: background-color 0.15s, opacity 0.15s;
   }
   .pf-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .pf-btn-primary { background: var(--sl-color-accent); color: var(--sl-color-text-invert); border-color: transparent; }
+  .pf-btn-primary { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
   .pf-btn-primary:hover:not(:disabled) { opacity: 0.88; }
-  .pf-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-accent-low); }
-  .pf-btn-small { padding: 0.25rem 0.7rem; font-size: 0.82rem; }
+  .pf-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+  .pf-btn-small { padding: 0.25rem 0.7rem; font-size: var(--sl-text-2xs); }
+
+  /* flashcard link */
+  .pf-fc-link { text-align: center; margin-top: 0.5rem; }
+  .pf-fc-link a {
+    font-size: var(--sl-text-xs); color: var(--sl-color-text-accent); text-decoration: none; font-weight: 600;
+  }
+  .pf-fc-link a:hover { text-decoration: underline; }
 </style>

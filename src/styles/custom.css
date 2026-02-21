@@ -4,27 +4,59 @@
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid var(--sl-color-gray-4);
-  border-radius: 4px;
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  padding: 1px 3px;
-  color: var(--sl-color-text-accent);
+  padding: 3px;
+  color: var(--sl-color-gray-3);
   vertical-align: middle;
   margin-left: 0.35em;
-  transition: background-color 0.15s, color 0.15s;
+  transition: color 0.15s, background-color 0.15s, transform 0.15s;
 }
 .dutch-audio-btn:hover {
+  color: var(--sl-color-text-accent);
   background-color: var(--sl-color-accent-low);
+  transform: scale(1.1);
+}
+@keyframes pulse-speak {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 .dutch-audio-btn.speaking {
-  color: var(--sl-color-text-invert);
-  background-color: var(--sl-color-accent);
+  color: var(--sl-color-text-accent);
+  background-color: var(--sl-color-accent-low);
+  animation: pulse-speak 1s ease-in-out infinite;
 }
 
 /* Improve table readability */
 table {
   font-size: 0.92em;
 }
+
+/* Grammar color-coding (grammar-in-action page) */
+.g-verb        { color: #d946ef; border-bottom: 2px solid #d946ef; font-weight: 600; }
+.g-subject     { color: #3b82f6; border-bottom: 2px solid #3b82f6; font-weight: 600; }
+.g-time        { color: #f59e0b; border-bottom: 2px solid #f59e0b; }
+.g-manner      { color: #10b981; border-bottom: 2px solid #10b981; }
+.g-place       { color: #ef4444; border-bottom: 2px solid #ef4444; }
+.g-conjunction { color: #8b5cf6; border-bottom: 2px dashed #8b5cf6; font-weight: 600; }
+.g-participle  { color: #ec4899; border-bottom: 2px dotted #ec4899; }
+.g-object      { color: #06b6d4; border-bottom: 2px solid #06b6d4; }
+.g-negation    { color: #f97316; border-bottom: 2px solid #f97316; font-weight: 700; }
+
+:root[data-theme='light'] .g-verb        { color: #a21caf; border-color: #a21caf; }
+:root[data-theme='light'] .g-subject     { color: #1d4ed8; border-color: #1d4ed8; }
+:root[data-theme='light'] .g-time        { color: #b45309; border-color: #b45309; }
+:root[data-theme='light'] .g-manner      { color: #047857; border-color: #047857; }
+:root[data-theme='light'] .g-place       { color: #b91c1c; border-color: #b91c1c; }
+:root[data-theme='light'] .g-conjunction { color: #6d28d9; border-color: #6d28d9; }
+:root[data-theme='light'] .g-participle  { color: #be185d; border-color: #be185d; }
+:root[data-theme='light'] .g-object      { color: #0e7490; border-color: #0e7490; }
+:root[data-theme='light'] .g-negation    { color: #c2410c; border-color: #c2410c; }
+
+.grammar-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 1rem 0; }
+.g-legend-item { display: inline-flex; align-items: center; }
+.g-legend-item > span { padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.85em; }
 
 /* Skip rendering off-screen tables for large pages (CEFR word lists) */
 .sl-markdown-content > table {

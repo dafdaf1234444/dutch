@@ -25,7 +25,17 @@
     "example question", "example answer", "tag",
     // Alphabet page
     "name", "spelling",
+    // Verb present tense page
+    "raw stem",
+    // Word order page
+    "position 1", "verb", "subject", "rest",
+    // Pronunciation guide page
+    "example words",
+    // Phonetics guide page
+    "proof (vowel follows)",
   ]);
+  // Headers where a startsWith match is enough (e.g. "example (werken)", "antwoord a")
+  const AUDIO_PREFIXES = ["example", "antwoord"];
 
   // Parse the SVG once into a reusable template
   const btnTemplate = document.createElement("template");
@@ -41,6 +51,11 @@
     text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) => {
       return inner.length > 3 ? " " : `(${inner})`;
     });
+    // Strip IPA in square brackets [hɔnt] and slashes /maːn/
+    text = text.replace(/\[[^\]]*\]/g, "");
+    text = text.replace(/\/[^/]+\//g, "");
+    // Strip arrow symbols (used in devoicing tables)
+    text = text.replace(/→/g, "");
     return text.replace(/\s+/g, " ").trim();
   }
 
@@ -75,7 +90,7 @@
       const audioColIndices: number[] = [];
       headers.forEach((th, i) => {
         const text = th.textContent?.trim().toLowerCase() ?? "";
-        if (AUDIO_HEADERS.has(text)) {
+        if (AUDIO_HEADERS.has(text) || AUDIO_PREFIXES.some(p => text.startsWith(p))) {
           audioColIndices.push(i);
         }
       });

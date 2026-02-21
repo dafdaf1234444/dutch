@@ -39,12 +39,15 @@ const DUTCH_HEADERS = new Set([
   "singular", "plural", "original", "conjugation",
   "stem", "correct stem", "statement", "question",
   "tag", "example question", "example answer",
+  "raw stem", "position 1", "verb", "subject", "rest",
+  "example words", "proof (vowel follows)",
 ]);
 
 // Column headers that contain English text
 const ENGLISH_HEADERS = new Set([
   "english", "meaning", "translation", "english meaning",
-  "literal meaning", "context",
+  "literal meaning", "context", "actual meaning",
+  "what it actually means", "english equivalent",
 ]);
 
 // Column headers that contain IPA

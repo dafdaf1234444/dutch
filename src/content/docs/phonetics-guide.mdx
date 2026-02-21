@@ -9,13 +9,83 @@ import Say from '@components/Say.astro';
 
 <DutchAudio />
 
-A complete reference for every Dutch phoneme using the International Phonetic Alphabet (IPA). Use this alongside the [Pronunciation Guide](/pronunciation-guide/) for a deeper understanding of Dutch sounds.
+A complete reference for every Dutch phoneme using the International Phonetic Alphabet (IPA). Use this alongside the [Pronunciation Guide](/pronunciation-guide/) for practical tips and the [Alphabet & Spelling](/vocabulary/alphabet/) page for letter-by-letter breakdown.
+
+---
+
+## What Is the IPA?
+
+The **International Phonetic Alphabet** (IPA) is a universal system for writing down the sounds of any language. Unlike regular spelling, where one letter can represent many sounds (think of English "a" in *cat*, *cake*, *call*), each IPA symbol represents exactly one sound. This makes it the most reliable way to know how a Dutch word is pronounced — even before you hear it.
+
+### How to Read IPA Notation
+
+- **Slashes** `/…/` indicate the intended pronunciation (phonemic): `/maːn/`
+- **Square brackets** `[…]` indicate the actual spoken sound (phonetic): `[maːn]`
+- **ː** (colon) means the vowel is held longer: `/aː/` is a long *a*
+- **ˈ** (vertical tick before a syllable) marks primary stress: `/ˈmaː.nən/` — stress on *maa*
+- **.** (dot) separates syllables: `/ˈmaː.nən/` = *maa-nen*
+
+### Quick Reference: Common IPA Symbols
+
+| IPA Symbol | Sounds Like | Example |
+|------------|-------------|---------|
+| `/ɑ/` | "ah" (short) | man |
+| `/aː/` | "ah" (long) | maan |
+| `/ɛ/` | "eh" as in bed | bed |
+| `/eː/` | "ay" without the glide | been |
+| `/ə/` | "uh" (unstressed, like *the*) | de |
+| `/ɪ/` | "ih" as in bit | dit |
+| `/iː/` | "ee" as in see | niet |
+| `/ɔ/` | "oh" (short, British *lot*) | pot |
+| `/oː/` | "oh" (long, no glide) | boon |
+| `/ʏ/` | "ih" with rounded lips | bus |
+| `/yː/` | "ee" with rounded lips | muur |
+| `/øː/` | "ay" with rounded lips | deur |
+| `/x/` | throat clearing (Scottish *loch*) | goed |
+| `/ʋ/` | between English "v" and "w" | water |
+
+---
+
+## The Big Picture
+
+Dutch has a compact but precise sound system. Here's the inventory at a glance:
+
+| Category | Count | Key Point |
+|----------|-------|-----------|
+| Monophthongs | 12 | Every basic vowel has a short + long pair |
+| Diphthongs | 6 | Three core (/ɛi/, /œy/, /ɑu/) + three long (/aːi/, /oːi/, /ui/) |
+| Consonants | ~23 | Most match English — only a handful don't |
+
+### Sounds with No English Equivalent
+
+These five sounds are where learners spend most of their effort. Listen and compare:
+
+| Sound | IPA | Hear It | Quick Approximation |
+|-------|-----|---------|---------------------|
+| uu | /yː/ | <Say text="muur" /> | Say "ee" with tightly rounded lips |
+| eu | /øː/ | <Say text="deur" /> | Say "ay" with rounded lips (like French *eu*) |
+| ui | /œy/ | <Say text="huis" /> | No shortcut — starts like "eu" and glides up |
+| Short u | /ʏ/ | <Say text="bus" /> | Say "ih" with rounded lips |
+| g/ch | /x/ | <Say text="goed" /> | Like clearing your throat (like Scottish *loch*) |
+
+### The #1 Rule: Open and Closed Syllables
+
+Dutch spelling is predictable once you know this: **a single vowel in a closed syllable is short; in an open syllable it's long.** This one rule explains most spelling changes.
+
+| Word | Syllable Type | Vowel | IPA |
+|------|--------------|-------|-----|
+| man | closed (CVC) | short *a* | `/mɑn/` |
+| maan | closed + doubled vowel | long *aa* | `/maːn/` |
+| ma-nen (plural) | open (CV-) | long *a* | `/ˈmaː.nən/` |
+| man-nen (plural) | closed (CVC) | short *a* | `/ˈmɑ.nən/` |
+
+See [Patterns & Rules](/grammar/patterns-rules/) for the full spelling system that follows from this principle.
 
 ---
 
 ## Vowel Chart
 
-Dutch has a rich vowel system. The chart below maps each vowel by **tongue height** (open/close) and **tongue position** (front/back).
+Every basic vowel comes in a short + long pair. Three vowels — /ʏ/, /yː/, and /øː/ — have no English equivalent because they combine front tongue position with rounded lips.
 
 ### Monophthongs (Pure Vowels)
 
@@ -30,24 +100,30 @@ Dutch has a rich vowel system. The chart below maps each vowel by **tongue heigh
 | /iː/ | ie | close, front | unrounded | niet (not) | like "see" |
 | /ɔ/ | o | mid-open, back | rounded | pot (pot) | like British "lot" |
 | /oː/ | oo, o (open syllable) | mid-close, back | rounded | boon (bean) | like "go" without the glide |
-| /ʏ/ | u | near-close, front | rounded | bus (bus) | say "ih" with rounded lips |
-| /yː/ | uu, u (open syllable) | close, front | rounded | muur (wall) | say "ee" with rounded lips |
-| /øː/ | eu | mid-close, front | rounded | deur (door) | say "ay" with rounded lips |
+| /ʏ/ | u | near-close, front | rounded | bus (bus) | <Say text="bus" /> say "ih" with rounded lips |
+| /yː/ | uu, u (open syllable) | close, front | rounded | muur (wall) | <Say text="muur" /> say "ee" with rounded lips |
+| /øː/ | eu | mid-close, front | rounded | deur (door) | <Say text="deur" /> say "ay" with rounded lips |
 
 ### Diphthongs (Gliding Vowels)
 
 | IPA | Dutch Spelling | Starting Position | Glides Toward | Dutch | English |
 |-----|---------------|-------------------|--------------|-------|---------|
 | /ɛi/ | ij, ei | mid-open front | close front | wijn (wine) | like "say" |
-| /œy/ | ui | mid-open front rounded | close front rounded | huis (house) | no English equivalent |
+| /œy/ | ui | mid-open front rounded | close front rounded | huis (house) | <Say text="huis" /> no English equivalent |
 | /ɑu/ | ou, au | open back | close back rounded | oud (old) | like "how" |
 | /aːi/ | aai | open front long | close front | draai (turn) | "ah" + "ee" |
 | /oːi/ | ooi | mid-close back long | close front | mooi (beautiful) | "oh" + "ee" |
 | /ui/ | oei | close back rounded | close front | moeite (effort) | "oo" + "ee" |
 
+:::tip[Vowel length matters]
+Getting vowel length wrong is the #1 source of misunderstanding. *Man* (man) vs. *maan* (moon) are completely different words. Practice the [minimal pairs](#short-vs-long-vowels) below until you can hear the difference reliably.
+:::
+
 ---
 
 ## Consonant Chart
+
+Most Dutch consonants match English. Three don't: **g/ch** (the throat sound), **w** (between English "v" and "w"), and **r** (which varies by region).
 
 ### Plosives (Stop Consonants)
 
@@ -106,6 +182,53 @@ Air flows through the nose.
 
 All three are accepted in standard Dutch. Use whichever feels most natural.
 
+### Articulatory Tips for Hard Sounds
+
+**The g/ch sound** /x/: Start by whispering "h" but pull your tongue back until you feel friction in your throat. If you speak German, it's like the *ch* in *Buch*. If you speak Scottish English, it's the *ch* in *loch*. Practice: <Say text="goed" /> <Say text="nacht" /> <Say text="acht" />
+
+**The w sound** /ʋ/: Place your upper teeth lightly on your lower lip (like starting an English "v") but don't fully commit to the contact — let air flow loosely. It's softer than English "v" but firmer than English "w". Practice: <Say text="water" /> <Say text="weten" /> <Say text="waar" />
+
+### Consonant Clusters
+
+Dutch loves stacking consonants. These clusters are common and worth drilling:
+
+| Cluster | IPA | Example | Meaning |
+|---------|-----|---------|---------|
+| sch | /sx/ | school | school |
+| schr | /sxr/ | schrijven | to write |
+| str | /str/ | straat | street |
+| spr | /spr/ | spreken | to speak |
+| thr | /tr/ | drie | three |
+
+See [Cognates & Borrowed Words](/vocabulary/cognates/) for familiar words where you can practice hearing these consonant patterns.
+
+---
+
+## The Open/Closed Syllable Rule
+
+This is the single most important spelling-pronunciation rule in Dutch. Once you internalize it, you can predict pronunciation from spelling — and vice versa.
+
+### The Core Principle
+
+| Syllable Type | Vowel Length | Spelling | Example |
+|---------------|-------------|----------|---------|
+| **Closed** (ends in consonant) | Short | Single vowel | man `/mɑn/` |
+| **Closed** (ends in consonant) | Long | Double vowel | maan `/maːn/` |
+| **Open** (ends in vowel) | Long | Single vowel | ma-nen `/ˈmaː.nən/` |
+
+### How Spelling Reflects It
+
+When you add a suffix (like a plural), the syllable structure changes, and the spelling adjusts to preserve the vowel sound:
+
+| Base | Plural | What Happens | Why |
+|------|--------|-------------|-----|
+| maan | manen | Drop one *a* | Syllable opens (ma-nen), so single *a* is already long |
+| man | mannen | Double the *n* | Keeps syllable closed (man-nen), preserving the short *a* |
+| boot | boten | Drop one *o* | Syllable opens (bo-ten), so single *o* is already long |
+| bot | botten | Double the *t* | Keeps syllable closed (bot-ten), preserving the short *o* |
+
+**Practical implication:** If you can split a word into syllables, you can predict every vowel length — and therefore the pronunciation. This rule also drives verb stem formation; see [Verbs: Present Tense](/grammar/verbs-present-tense/) and [Patterns & Rules](/grammar/patterns-rules/) for more.
+
 ---
 
 ## Minimal Pairs
@@ -131,11 +254,28 @@ Minimal pairs are word pairs that differ by just one sound. They are the best wa
 | veel (much) | /v/ voiced | feel (no word) | /f/ voiceless |
 | zee (sea) | /z/ voiced | see (no word) | /s/ voiceless |
 
+### Rounded vs. Unrounded Vowels
+
+The distinction between rounded and unrounded front vowels is unique to Dutch (and similar to French/German). Compare:
+
+| Dutch | IPA | Dutch | IPA |
+|-------|-----|-------|-----|
+| buur (neighbor) | /yː/ rounded | boer (farmer) | /uː/ back rounded |
+| deur (door) | /øː/ front rounded | deer (tar) | /eː/ front unrounded |
+| bus (bus) | /ʏ/ front rounded | bis (encore) | /ɪ/ front unrounded |
+
+### Consonant Pairs
+
+| Dutch | IPA | Dutch | IPA |
+|-------|-----|-------|-----|
+| veel (much) | /v/ voiced | feel | /f/ voiceless |
+| gaan (to go) | /ɣ/ velar | haan (rooster) | /ɦ/ glottal |
+
 ---
 
 ## Final Devoicing Rules
 
-Dutch systematically devoices consonants at word boundaries.
+All voiced consonants become voiceless at the end of a word — the plural or inflected form reveals the true underlying sound.
 
 | Voiced | Voiceless at End | Example | Proof (Vowel Follows) |
 |--------|-----------------|---------|----------------------|
@@ -145,11 +285,13 @@ Dutch systematically devoices consonants at word boundaries.
 | /v/ | /f/ | brief → [brif] (letter) | brieven [ˈbrivən] (letters) |
 | /z/ | /s/ | huis → [hœys] (house) | huizen [ˈhœyzən] (houses) |
 
+This is why verb stems sometimes look different from what you'd expect — see [Patterns & Rules](/grammar/patterns-rules/) for how this interacts with verb conjugation.
+
 ---
 
 ## Assimilation Rules
 
-When consonants are next to each other, they often influence each other.
+Assimilation happens automatically in fast speech — don't fight it. Let your mouth take the natural shortcut.
 
 | Rule | Example | Pronunciation |
 |------|---------|---------------|
@@ -161,9 +303,9 @@ When consonants are next to each other, they often influence each other.
 
 ## Pronunciation Practice Drills
 
-Try saying each row aloud. Click the speaker to check yourself.
+Try saying each row aloud. Click the speaker to check yourself. Drills are ordered from foundational to advanced.
 
-### Drill 1: Short vs. Long Vowels
+### Drill 1: Vowel Length (Short vs. Long)
 
 | Dutch | English |
 |-------|---------|
@@ -173,7 +315,15 @@ Try saying each row aloud. Click the speaker to check yourself.
 | bus — buurt | bus — neighborhood |
 | bed — been | bed — leg |
 
-### Drill 2: Tricky Diphthongs
+### Drill 2: Rounded Vowels
+
+| Dutch | English |
+|-------|---------|
+| muur, vuur, duur | wall, fire, expensive |
+| deur, neus, leuk | door, nose, fun |
+| bus, mus, put | bus, sparrow, well |
+
+### Drill 3: Tricky Diphthongs
 
 | Dutch | English |
 |-------|---------|
@@ -181,12 +331,47 @@ Try saying each row aloud. Click the speaker to check yourself.
 | wijn, trein, vrij | wine, train, free |
 | oud, blauw, auto | old, blue, car |
 
-### Drill 3: The G/CH Sound
+### Drill 4: The G/CH Sound
 
 | Dutch | English |
 |-------|---------|
 | goed, gaan, geld | good, go, money |
 | nacht, licht, echt | night, light, real |
+| gracht, lachen, zacht | canal, laugh, soft |
+
+### Drill 5: Consonant Clusters
+
+| Dutch | English |
+|-------|---------|
 | school, schrijven, schip | school, write, ship |
+| straat, spreken, strand | street, speak, beach |
+| schilderij, schoonmaken | painting, to clean |
+
+---
+
+## Key Vocabulary
+
+| Dutch | English | IPA |
+|-------|---------|-----|
+| man | man | `/mɑn/` |
+| maan | moon | `/maːn/` |
+| bed | bed | `/bɛt/` |
+| been | leg | `/beːn/` |
+| huis | house | `/hœys/` |
+| goed | good | `/ɣut/` |
+| muur | wall | `/myːr/` |
+| deur | door | `/døːr/` |
+| bus | bus | `/bʏs/` |
+| water | water | `/ˈʋaː.tər/` |
+| dag | day | `/dɑx/` |
+| nacht | night | `/nɑxt/` |
+| straat | street | `/straːt/` |
+| school | school | `/sxoːl/` |
+| naam | name | `/naːm/` |
+| pot | pot | `/pɔt/` |
+| boon | bean | `/boːn/` |
+| wijn | wine | `/ʋɛin/` |
+| oud | old | `/ɑut/` |
+| rood | red | `/roːt/` |
 
 <PageFlashcards />
