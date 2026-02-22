@@ -31,6 +31,7 @@ export function setRate(rate: number): void {
 /* ---- Stop all speech ---- */
 
 export function stopAll(): void {
+  if (typeof speechSynthesis === "undefined") return;
   speechSynthesis.cancel();
   isSpeaking = false;
   if (activeBtn) {
@@ -42,6 +43,15 @@ export function stopAll(): void {
 /* ---- Single utterance with toggle ---- */
 
 export function speakDutch(text: string, btn?: HTMLElement): void {
+  // Check if Web Speech API is available
+  if (typeof speechSynthesis === "undefined") {
+    if (btn) {
+      btn.title = "Audio not supported in this browser";
+      btn.style.opacity = "0.4";
+    }
+    return;
+  }
+
   // Toggle: if same button is already speaking, stop
   if (btn && btn === activeBtn && isSpeaking) {
     stopAll();
@@ -88,6 +98,11 @@ export interface SequenceOpts {
 }
 
 export function speakSequence(texts: string[], opts?: SequenceOpts): () => void {
+  if (typeof speechSynthesis === "undefined") {
+    opts?.onDone?.();
+    return () => {};
+  }
+
   const pause = opts?.pause ?? 600;
   let cancelled = false;
   let currentIndex = 0;

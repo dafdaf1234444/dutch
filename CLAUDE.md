@@ -8,9 +8,11 @@ Interactive Dutch language learning site built with **Astro 5 + Starlight**.
 
 ```bash
 npm install
-npm run dev          # Dev server at localhost:4321
-npm run build        # Production build to ./dist/
-npm run preview      # Preview production build
+npm run dev              # Dev server at localhost:4321
+npm run build            # Production build to ./dist/
+npm run preview          # Preview production build
+npm run check            # Type-check without building
+npm run extract-flashcards  # Regenerate flashcard data from MDX
 ```
 
 ## Project Structure
@@ -22,6 +24,7 @@ src/
 │   ├── FlashcardApp.astro    # Main flashcard practice app (23 decks, 1,615 cards)
 │   ├── PageFlashcards.astro  # Per-page flashcard widget (auto-extracts from tables)
 │   ├── Say.astro             # Inline pronunciation button: <Say text="hallo" />
+│   ├── ExamPractice.astro    # Interactive exam with live validation & scoring
 │   └── ExternalLinks.astro   # Opens external links in new tabs
 ├── content/docs/             # All content pages (MDX)
 │   ├── index.mdx             # Homepage with learning path
@@ -92,12 +95,28 @@ All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑl
 
 **Five practice modes:** Dutch→English, English→Dutch, Mixed, Listen (audio-only), Dictation (type what you hear with scoring).
 
+**Progress features:**
+- **Spaced repetition (light):** Cards are prioritized by difficulty — unseen and "Again" cards appear first, "Easy" cards last
+- **Difficulty rating:** After revealing each card, rate it Again/Hard/Easy to track mastery
+- **Favorites:** Heart icon on each card to bookmark difficult words; filter by favorites on topic grid
+- **Progress persistence:** All card data (difficulty, reviews, favorites) and stats (lifetime reviews, streak) saved to localStorage
+- **Stats display:** Review count and streak shown on topic grid and completion screen
+
 Two independent extraction mechanisms:
 
-1. **Global** (FlashcardApp): `node scripts/extract-flashcard-data.mjs` generates `src/data/flashcard-decks.ts` from 23 MDX files
+1. **Global** (FlashcardApp): `npm run extract-flashcards` generates `src/data/flashcard-decks.ts` from 23 MDX files
 2. **Per-page** (PageFlashcards): Reads DOM tables at runtime, no pre-processing needed
 
 To add words to global flashcards: update MDX tables, then re-run the extraction script.
+
+### Exam Practice (ExamPractice.astro)
+
+Interactive exam component with live validation. Supports three exercise types:
+- **MCQ** (`.exam-mcq`): Multiple-choice with radio buttons, used for reading, vocabulary, KNM, and listening
+- **Fill-in-blank** (`.exam-fill`): Text input with answer validation, accepts multiple correct answers via `|` separator
+- **Word order** (`.exam-order`): Text input for sentence construction, accepts alternatives via `|`
+
+Each section has its own Check button and score display. Scores persist to localStorage per section.
 
 ### Sidebar
 

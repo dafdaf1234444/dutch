@@ -36,6 +36,10 @@ const { text } = Astro.props;
     background-color: var(--sl-color-accent-low);
     transform: scale(1.1);
   }
+  .say-btn:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
   .say-btn.speaking {
     color: var(--sl-color-text-accent);
     background-color: var(--sl-color-accent-low);

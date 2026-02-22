@@ -177,14 +177,14 @@ for (const source of SOURCES) {
     if (unique.length > 0) {
       decks.push({ name: source.name, words: unique });
       totalCards += unique.length;
-      console.log(`  ${source.name}: ${unique.length} cards (${entries.length} total, ${entries.length - unique.length} duplicates removed)`);
+      process.stdout.write(`  ${source.name}: ${unique.length} cards (${entries.length} total, ${entries.length - unique.length} duplicates removed)\n`);
     }
   } catch (e) {
     console.error(`  ERROR reading ${source.file}: ${e.message}`);
   }
 }
 
-console.log(`\nTotal: ${totalCards} unique cards across ${decks.length} decks`);
+process.stdout.write(`\nTotal: ${totalCards} unique cards across ${decks.length} decks\n`);
 
 // Generate TypeScript file
 const tsLines = [
@@ -222,4 +222,4 @@ tsLines.push("];");
 tsLines.push("");
 
 writeFileSync("src/data/flashcard-decks.ts", tsLines.join("\n"));
-console.log(`\nWrote src/data/flashcard-decks.ts`);
+process.stdout.write(`\nWrote src/data/flashcard-decks.ts\n`);

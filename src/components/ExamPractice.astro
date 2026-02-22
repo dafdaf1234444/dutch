@@ -1,0 +1,347 @@
+---
+// ExamPractice – Interactive exam practice component with live validation,
+// score tracking, and answer feedback. Replaces static answer keys.
+---
+
+<exam-practice></exam-practice>
+
+<script>
+const EXAM_STORAGE_KEY = "dutch-exam-scores";
+
+interface ExamScores {
+  [section: string]: { correct: number; total: number; date: string };
+}
+
+class ExamPracticeEl extends HTMLElement {
+  connectedCallback() {
+    this.wireUpMCQ();
+    this.wireUpFillBlanks();
+    this.wireUpWordOrder();
+  }
+
+  private loadScores(): ExamScores {
+    try {
+      const raw = localStorage.getItem(EXAM_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+
+  private saveScore(section: string, correct: number, total: number): void {
+    try {
+      const scores = this.loadScores();
+      scores[section] = { correct, total, date: new Date().toISOString().slice(0, 10) };
+      localStorage.setItem(EXAM_STORAGE_KEY, JSON.stringify(scores));
+    } catch { /* localStorage unavailable */ }
+  }
+
+  /** Wire up all MCQ quiz sections (vocabulary quiz, KNM, reading comprehension, listening) */
+  private wireUpMCQ(): void {
+    document.querySelectorAll<HTMLElement>(".exam-mcq").forEach(section => {
+      const sectionId = section.dataset.section ?? "mcq";
+      const questions = section.querySelectorAll<HTMLElement>(".exam-q");
+      const checkBtn = section.querySelector<HTMLButtonElement>(".exam-check");
+      const resultEl = section.querySelector<HTMLElement>(".exam-result");
+      if (!checkBtn || !resultEl) return;
+
+      checkBtn.addEventListener("click", () => {
+        let correct = 0;
+        const total = questions.length;
+
+        questions.forEach(q => {
+          const answer = q.dataset.answer ?? "";
+          const selected = q.querySelector<HTMLInputElement>("input:checked");
+          const feedback = q.querySelector<HTMLElement>(".exam-feedback");
+          if (!feedback) return;
+
+          q.querySelectorAll("input").forEach(inp => { inp.disabled = true; });
+
+          if (selected && selected.value === answer) {
+            correct++;
+            feedback.innerHTML = `<span class="exam-correct">&#10003; Correct</span>`;
+            (selected.parentElement as HTMLElement).classList.add("exam-choice-correct");
+          } else {
+            const correctLabel = q.querySelector<HTMLElement>(`label[data-value="${answer}"]`);
+            feedback.innerHTML = `<span class="exam-wrong">&#10007; Incorrect</span>`;
+            if (selected) (selected.parentElement as HTMLElement).classList.add("exam-choice-wrong");
+            if (correctLabel) correctLabel.classList.add("exam-choice-correct");
+          }
+          feedback.style.display = "block";
+        });
+
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        resultEl.innerHTML = `<strong>${correct} / ${total}</strong> correct (${pct}%)`;
+        resultEl.style.display = "block";
+        checkBtn.disabled = true;
+        checkBtn.textContent = "Checked";
+        this.saveScore(sectionId, correct, total);
+      });
+    });
+  }
+
+  /** Wire up fill-in-the-blank grammar exercises */
+  private wireUpFillBlanks(): void {
+    document.querySelectorAll<HTMLElement>(".exam-fill").forEach(section => {
+      const sectionId = section.dataset.section ?? "fill";
+      const items = section.querySelectorAll<HTMLElement>(".exam-fill-item");
+      const checkBtn = section.querySelector<HTMLButtonElement>(".exam-check");
+      const resultEl = section.querySelector<HTMLElement>(".exam-result");
+      if (!checkBtn || !resultEl) return;
+
+      checkBtn.addEventListener("click", () => {
+        let correct = 0;
+        const total = items.length;
+
+        items.forEach(item => {
+          const input = item.querySelector<HTMLInputElement>(".exam-fill-input");
+          const answer = item.dataset.answer ?? "";
+          const feedback = item.querySelector<HTMLElement>(".exam-feedback");
+          if (!input || !feedback) return;
+
+          input.disabled = true;
+          const userAnswer = this.normalize(input.value);
+          const answers = answer.split("|").map(a => this.normalize(a));
+
+          if (answers.includes(userAnswer)) {
+            correct++;
+            input.classList.add("exam-input-correct");
+            feedback.innerHTML = `<span class="exam-correct">&#10003; Correct</span>`;
+          } else {
+            input.classList.add("exam-input-wrong");
+            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${answer.split("|")[0]}</strong></span>`;
+          }
+          feedback.style.display = "block";
+        });
+
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        resultEl.innerHTML = `<strong>${correct} / ${total}</strong> correct (${pct}%)`;
+        resultEl.style.display = "block";
+        checkBtn.disabled = true;
+        checkBtn.textContent = "Checked";
+        this.saveScore(sectionId, correct, total);
+      });
+    });
+  }
+
+  /** Wire up word order exercises */
+  private wireUpWordOrder(): void {
+    document.querySelectorAll<HTMLElement>(".exam-order").forEach(section => {
+      const sectionId = section.dataset.section ?? "order";
+      const items = section.querySelectorAll<HTMLElement>(".exam-order-item");
+      const checkBtn = section.querySelector<HTMLButtonElement>(".exam-check");
+      const resultEl = section.querySelector<HTMLElement>(".exam-result");
+      if (!checkBtn || !resultEl) return;
+
+      checkBtn.addEventListener("click", () => {
+        let correct = 0;
+        const total = items.length;
+
+        items.forEach(item => {
+          const input = item.querySelector<HTMLInputElement>(".exam-order-input");
+          const answer = item.dataset.answer ?? "";
+          const feedback = item.querySelector<HTMLElement>(".exam-feedback");
+          if (!input || !feedback) return;
+
+          input.disabled = true;
+          const userAnswer = this.normalize(input.value);
+          const answers = answer.split("|").map(a => this.normalize(a));
+
+          if (answers.includes(userAnswer)) {
+            correct++;
+            input.classList.add("exam-input-correct");
+            feedback.innerHTML = `<span class="exam-correct">&#10003; Correct</span>`;
+          } else {
+            input.classList.add("exam-input-wrong");
+            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${answer.split("|")[0]}</strong></span>`;
+          }
+          feedback.style.display = "block";
+        });
+
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        resultEl.innerHTML = `<strong>${correct} / ${total}</strong> correct (${pct}%)`;
+        resultEl.style.display = "block";
+        checkBtn.disabled = true;
+        checkBtn.textContent = "Checked";
+        this.saveScore(sectionId, correct, total);
+      });
+    });
+  }
+
+  private normalize(s: string): string {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase().trim().replace(/[?!.,;:'"]/g, "").replace(/\s+/g, " ");
+  }
+}
+
+customElements.define("exam-practice", ExamPracticeEl);
+</script>
+
+<style>
+  /* MCQ question styling */
+  .exam-mcq, .exam-fill, .exam-order {
+    margin-bottom: 1.5rem;
+  }
+
+  .exam-q {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+  }
+
+  .exam-q-text {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--sl-color-white);
+  }
+
+  .exam-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .exam-choices label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    font-size: var(--sl-text-sm);
+  }
+
+  .exam-choices label:hover {
+    background-color: var(--sl-color-gray-7, var(--sl-color-gray-6));
+  }
+
+  .exam-choices input[type="radio"] {
+    accent-color: var(--sl-color-text-accent);
+  }
+
+  .exam-choice-correct {
+    background-color: rgba(74, 222, 128, 0.15) !important;
+    border-left: 3px solid #4ade80;
+  }
+
+  .exam-choice-wrong {
+    background-color: rgba(248, 113, 113, 0.15) !important;
+    border-left: 3px solid #f87171;
+  }
+
+  /* Fill-in-blank styling */
+  .exam-fill-item {
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+  }
+
+  .exam-fill-text {
+    margin-bottom: 0.4rem;
+    color: var(--sl-color-white);
+    font-size: var(--sl-text-sm);
+  }
+
+  .exam-fill-input, .exam-order-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.4rem 0.6rem;
+    font-size: var(--sl-text-sm);
+    font-family: inherit;
+    border: 2px solid var(--sl-color-gray-5);
+    border-radius: 0.35rem;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+
+  .exam-fill-input:focus, .exam-order-input:focus {
+    border-color: var(--sl-color-text-accent);
+  }
+
+  .exam-input-correct {
+    border-color: #4ade80 !important;
+    background-color: rgba(74, 222, 128, 0.1);
+  }
+
+  .exam-input-wrong {
+    border-color: #f87171 !important;
+    background-color: rgba(248, 113, 113, 0.1);
+  }
+
+  /* Word order items */
+  .exam-order-item {
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+  }
+
+  .exam-order-words {
+    margin-bottom: 0.4rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+  }
+
+  /* Feedback */
+  .exam-feedback {
+    display: none;
+    margin-top: 0.4rem;
+    font-size: var(--sl-text-sm);
+  }
+
+  .exam-correct {
+    color: #4ade80;
+    font-weight: 600;
+  }
+
+  .exam-wrong {
+    color: #f87171;
+    font-weight: 600;
+  }
+
+  /* Check button and result */
+  .exam-check {
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent);
+    background: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    transition: opacity 0.15s;
+  }
+
+  .exam-check:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+
+  .exam-check:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .exam-check:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
+
+  .exam-result {
+    display: none;
+    margin-top: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-text-accent);
+    font-size: var(--sl-text-sm);
+  }
+</style>

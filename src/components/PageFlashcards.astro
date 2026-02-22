@@ -224,33 +224,33 @@ class PageFlashcards extends HTMLElement {
       // Listen mode back: show Dutch + English + IPA
       cardContent = `
         <div class="pf-badge">NL</div>
-        <div class="pf-word">${card.dutch}</div>
-        ${card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : ""}
+        <div class="pf-word">${this.esc(card.dutch)}</div>
+        ${card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : ""}
         <button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
         <div class="pf-reveal-divider"></div>
         <div class="pf-badge pf-badge-answer">EN</div>
-        <div class="pf-answer">${card.english}</div>`;
+        <div class="pf-answer">${this.esc(card.english)}</div>`;
     } else {
       // Normal modes
       const frontWord = dutch ? card.dutch : card.english;
-      const frontSub = dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
+      const frontSub = dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
       const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
       const fLabel = dutch ? "NL" : "EN";
 
       const backWord = dutch ? card.english : card.dutch;
-      const backSub = !dutch && card.ipa ? `<div class="pf-ipa">${card.ipa}</div>` : "";
+      const backSub = !dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
       const backAudio = !dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
       const bLabel = dutch ? "EN" : "NL";
 
       cardContent = `
         <div class="pf-badge">${fLabel}</div>
-        <div class="pf-word">${frontWord}</div>
+        <div class="pf-word">${this.esc(frontWord)}</div>
         ${frontSub}
         ${frontAudio}
         ${this.flipped ? `
           <div class="pf-reveal-divider"></div>
           <div class="pf-badge pf-badge-answer">${bLabel}</div>
-          <div class="pf-answer">${backWord}</div>
+          <div class="pf-answer">${this.esc(backWord)}</div>
           ${backSub}
           ${backAudio}
         ` : ""}`;

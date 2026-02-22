@@ -19,8 +19,21 @@ document.addEventListener("click", (e) => {
   speakDutch(text, btn);
 });
 const TOPICS = DECKS;
+const FC_STORAGE_KEY = "dutch-fc-progress";
 
 type Direction = "nl-en" | "en-nl" | "mixed" | "listen" | "dictation";
+
+interface CardProgress {
+  ease: number;      // 0=new, 1=again, 2=hard, 3=easy
+  lastSeen: number;  // timestamp
+  reviews: number;
+  favorite: boolean;
+}
+
+interface FCStorage {
+  cards: Record<string, CardProgress>;
+  stats: { totalReviews: number; lastDate: string; streak: number };
+}
 
 class FlashcardApp extends HTMLElement {
   selectedTopics: Set<number> = new Set();
@@ -34,13 +47,70 @@ class FlashcardApp extends HTMLElement {
   /* dictation scoring */
   correctCount = 0;
   totalAnswered = 0;
+  /* progress & favorites */
+  showFavoritesOnly = false;
+  private storage: FCStorage = { cards: {}, stats: { totalReviews: 0, lastDate: "", streak: 0 } };
 
   static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+  static HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
 
   private _keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
   connectedCallback() {
+    this.loadStorage();
     this.renderTopicGrid();
+  }
+
+  /* ---- Storage helpers ---- */
+
+  private loadStorage(): void {
+    try {
+      const raw = localStorage.getItem(FC_STORAGE_KEY);
+      if (raw) this.storage = JSON.parse(raw);
+    } catch { /* localStorage unavailable */ }
+  }
+
+  private saveStorage(): void {
+    try {
+      localStorage.setItem(FC_STORAGE_KEY, JSON.stringify(this.storage));
+    } catch { /* localStorage unavailable */ }
+  }
+
+  private cardKey(card: Word): string {
+    return card.dutch.toLowerCase();
+  }
+
+  private getProgress(card: Word): CardProgress {
+    return this.storage.cards[this.cardKey(card)] ?? { ease: 0, lastSeen: 0, reviews: 0, favorite: false };
+  }
+
+  private rateCard(card: Word, ease: number): void {
+    const key = this.cardKey(card);
+    const prev = this.storage.cards[key] ?? { ease: 0, lastSeen: 0, reviews: 0, favorite: false };
+    this.storage.cards[key] = { ...prev, ease, lastSeen: Date.now(), reviews: prev.reviews + 1 };
+    this.storage.stats.totalReviews++;
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (this.storage.stats.lastDate !== today) {
+      this.storage.stats.streak = this.storage.stats.lastDate === yesterday ? this.storage.stats.streak + 1 : 1;
+      this.storage.stats.lastDate = today;
+    }
+    this.saveStorage();
+  }
+
+  private toggleFavorite(card: Word): void {
+    const key = this.cardKey(card);
+    const prev = this.storage.cards[key] ?? { ease: 0, lastSeen: 0, reviews: 0, favorite: false };
+    this.storage.cards[key] = { ...prev, favorite: !prev.favorite };
+    this.saveStorage();
+  }
+
+  private isFavorite(card: Word): boolean {
+    return this.getProgress(card).favorite;
+  }
+
+  private getFavoritesCount(): number {
+    return Object.values(this.storage.cards).filter(c => c.favorite).length;
   }
 
   shuffle<T>(arr: T[]): T[] {
@@ -122,10 +192,16 @@ class FlashcardApp extends HTMLElement {
       "dictation": "Dictation",
     };
 
+    const { totalReviews, streak } = this.storage.stats;
+    const favCount = this.getFavoritesCount();
+    const statsLine = totalReviews > 0
+      ? `${totalReviews} reviews${streak > 1 ? ` · ${streak}-day streak` : ""}`
+      : "";
+
     this.innerHTML = `
       <div class="fc-container">
         <h2 class="fc-heading">Choose Topics</h2>
-        <p class="fc-subheading">Select topics, pick a direction, then start.</p>
+        <p class="fc-subheading">Select topics, pick a direction, then start.${statsLine ? `<br><span class="fc-stats-line">${statsLine}</span>` : ""}</p>
 
         <div class="fc-topic-grid">
           ${TOPICS.map((t, i) => `
@@ -149,6 +225,7 @@ class FlashcardApp extends HTMLElement {
           <button class="fc-btn fc-btn-secondary" id="fc-select-all" type="button">
             ${this.selectedTopics.size === TOPICS.length ? "Deselect All" : "Select All"}
           </button>
+          ${favCount > 0 ? `<button class="fc-btn fc-btn-secondary ${this.showFavoritesOnly ? "fc-fav-active" : ""}" id="fc-fav-filter" type="button">&#9829; Favorites (${favCount})</button>` : ""}
           <button class="fc-btn fc-btn-primary" id="fc-start" type="button"
                   ${totalSelected === 0 ? "disabled" : ""}>
             Start (${totalSelected} cards)
@@ -177,6 +254,14 @@ class FlashcardApp extends HTMLElement {
       this.renderTopicGrid();
     });
 
+    const favFilterBtn = this.querySelector("#fc-fav-filter");
+    if (favFilterBtn) {
+      favFilterBtn.addEventListener("click", () => {
+        this.showFavoritesOnly = !this.showFavoritesOnly;
+        this.renderTopicGrid();
+      });
+    }
+
     this.querySelector("#fc-start")!.addEventListener("click", () => {
       if (totalSelected > 0) this.startPractice();
     });
@@ -185,7 +270,24 @@ class FlashcardApp extends HTMLElement {
   startPractice() {
     this.cards = [];
     for (const i of this.selectedTopics) this.cards.push(...TOPICS[i].words);
-    this.order = this.shuffle([...Array(this.cards.length).keys()]);
+    if (this.showFavoritesOnly) {
+      this.cards = this.cards.filter(c => this.isFavorite(c));
+    }
+    if (this.cards.length === 0) return;
+
+    // Spaced repetition: prioritize unseen and difficult cards
+    const indices = [...Array(this.cards.length).keys()];
+    this.shuffle(indices);
+    indices.sort((a, b) => {
+      const pa = this.getProgress(this.cards[a]);
+      const pb = this.getProgress(this.cards[b]);
+      // Unseen (ease=0) first, then again (1), hard (2), easy (3)
+      if (pa.ease !== pb.ease) return pa.ease - pb.ease;
+      // Within same ease, older reviews first
+      return pa.lastSeen - pb.lastSeen;
+    });
+    this.order = indices;
+
     this.showDutchFirst = this.order.map(() => {
       if (this.direction === "nl-en" || this.direction === "listen" || this.direction === "dictation") return true;
       if (this.direction === "en-nl") return false;
@@ -239,11 +341,13 @@ class FlashcardApp extends HTMLElement {
       this.unbindKeys();
       const isDictation = this.direction === "dictation";
       const scorePct = this.totalAnswered > 0 ? Math.round((this.correctCount / this.totalAnswered) * 100) : 0;
+      const { totalReviews, streak } = this.storage.stats;
       this.innerHTML = `
         <div class="fc-container fc-center">
           <h2 class="fc-heading">All done!</h2>
           <p class="fc-subheading">You reviewed all ${total} cards.</p>
           ${isDictation ? `<p class="fc-score-final">${this.correctCount} / ${this.totalAnswered} correct (${scorePct}%)</p>` : ""}
+          ${totalReviews > 0 ? `<p class="fc-lifetime-stats">${totalReviews} lifetime reviews${streak > 1 ? ` · ${streak}-day streak` : ""}</p>` : ""}
           <div class="fc-actions">
             <button class="fc-btn fc-btn-secondary" id="fc-back" type="button">Back to Topics</button>
             <button class="fc-btn fc-btn-primary" id="fc-restart" type="button">Restart</button>
@@ -270,7 +374,8 @@ class FlashcardApp extends HTMLElement {
           <div class="fc-lang-badge">DICTATION</div>
           <button class="dutch-audio-btn fc-audio-btn fc-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
           <div class="fc-dictation-form">
-            <input type="text" class="fc-dictation-input" placeholder="Type what you hear..." autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <label for="fc-dictation-field" class="sr-only">Type what you hear</label>
+            <input type="text" id="fc-dictation-field" class="fc-dictation-input" placeholder="Type what you hear..." autocomplete="off" autocapitalize="off" spellcheck="false" />
             <button class="fc-btn fc-btn-primary fc-dictation-check" type="button">Check Answer</button>
           </div>
         </div>`;
@@ -284,13 +389,13 @@ class FlashcardApp extends HTMLElement {
             <div class="fc-dictation-status">${isCorrect ? "&#10003; Correct!" : "&#10007; Incorrect"}</div>
             ${!isCorrect ? `<div class="fc-dictation-your">Your answer: <span class="fc-dictation-diff">${this.esc(userAnswer) || "(empty)"}</span></div>` : ""}
             <div class="fc-dictation-answer">
-              <span>${card.dutch}</span>
+              <span>${this.esc(card.dutch)}</span>
               <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
             </div>
-            ${card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : ""}
+            ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
             <div class="fc-divider"></div>
             <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
-            <div class="fc-answer">${card.english}</div>
+            <div class="fc-answer">${this.esc(card.english)}</div>
           </div>
         </div>`;
     } else if (isListen && !this.flipped) {
@@ -306,24 +411,24 @@ class FlashcardApp extends HTMLElement {
       cardInner = `
         <div class="fc-card-inner">
           <div class="fc-lang-badge">NL</div>
-          <div class="fc-word">${card.dutch}</div>
-          ${card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : ""}
+          <div class="fc-word">${this.esc(card.dutch)}</div>
+          ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
           <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
           <div class="fc-divider"></div>
           <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
-          <div class="fc-answer">${card.english}</div>
+          <div class="fc-answer">${this.esc(card.english)}</div>
         </div>`;
     } else {
       // Normal modes
       const frontWord = dutch ? card.dutch : card.english;
-      const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+      const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
       const frontAudio = dutch
         ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
         : "";
       const frontLabel = dutch ? "NL" : "EN";
 
       const backWord = dutch ? card.english : card.dutch;
-      const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${card.ipa}</div>` : "";
+      const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
       const backAudio = !dutch
         ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
         : "";
@@ -332,13 +437,13 @@ class FlashcardApp extends HTMLElement {
       cardInner = `
         <div class="fc-card-inner">
           <div class="fc-lang-badge">${frontLabel}</div>
-          <div class="fc-word">${frontWord}</div>
+          <div class="fc-word">${this.esc(frontWord)}</div>
           ${frontSub}
           ${frontAudio}
           ${this.flipped ? `
             <div class="fc-divider"></div>
             <div class="fc-lang-badge fc-lang-badge-answer">${backLabel}</div>
-            <div class="fc-answer">${backWord}</div>
+            <div class="fc-answer">${this.esc(backWord)}</div>
             ${backSub}
             ${backAudio}
           ` : ""}
@@ -358,12 +463,17 @@ class FlashcardApp extends HTMLElement {
       return `<tr class="${cls}" data-pos="${pos}"><td class="fc-wl-num">${pos + 1}</td><td class="fc-wl-shown">${shown}</td><td class="fc-wl-hidden">${hidden}</td></tr>`;
     }).join("");
 
+    const fav = this.isFavorite(card);
+
     this.innerHTML = `
       <div class="fc-container">
         <div class="fc-toolbar">
           <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back" type="button">Back</button>
           <span class="fc-counter">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score" aria-live="polite">${this.correctCount}/${this.totalAnswered}</span> · ` : ""}${num} / ${total}</span>
-          <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
+          <div class="fc-toolbar-right">
+            <button class="fc-fav-btn ${fav ? "fc-fav-on" : ""}" id="fc-fav" type="button" title="${fav ? "Remove from favorites" : "Add to favorites"}" aria-label="${fav ? "Remove from favorites" : "Add to favorites"}">${FlashcardApp.HEART}</button>
+            <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
+          </div>
         </div>
         <div class="fc-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
 
@@ -374,6 +484,13 @@ class FlashcardApp extends HTMLElement {
           </div>
           <button class="fc-nav fc-nav-next" id="fc-next" type="button" title="${this.flipped ? "Next card" : "Show Answer"}" aria-label="Next">&#8250;</button>
         </div>
+
+        ${this.flipped ? `
+        <div class="fc-rating" aria-label="Rate difficulty">
+          <button class="fc-rate-btn fc-rate-again" data-ease="1" type="button">Again</button>
+          <button class="fc-rate-btn fc-rate-hard" data-ease="2" type="button">Hard</button>
+          <button class="fc-rate-btn fc-rate-easy" data-ease="3" type="button">Easy</button>
+        </div>` : ""}
 
         <div class="fc-shortcut-hint">&larr; Prev &nbsp; Space / Enter &nbsp; Next &rarr;</div>
 
@@ -397,6 +514,18 @@ class FlashcardApp extends HTMLElement {
     });
     this.querySelector("#fc-back")!.addEventListener("click", () => { this.unbindKeys(); this.renderTopicGrid(); });
     this.querySelector("#fc-reshuffle")!.addEventListener("click", () => this.reshuffle());
+    this.querySelector("#fc-fav")!.addEventListener("click", () => {
+      this.toggleFavorite(card);
+      this.renderCard();
+    });
+    this.querySelectorAll<HTMLButtonElement>(".fc-rate-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.rateCard(card, Number(btn.dataset.ease));
+        this.current++;
+        this.flipped = false;
+        this.renderCard();
+      });
+    });
 
     // Dictation mode: wire up check button and Enter key on input
     if (isDictation && !this.flipped) {
@@ -578,4 +707,54 @@ customElements.define("flashcard-app", FlashcardApp);
   .fc-wl-current { background-color: var(--sl-color-accent-low); }
   .fc-wl-current td { font-weight: 600; }
   .fc-wl-visited { opacity: 0.5; }
+
+  /* focus styles */
+  .fc-btn:focus-visible, .fc-nav:focus-visible, .fc-dir-btn:focus-visible,
+  .fc-topic-card:focus-visible, .fc-audio-btn:focus-visible, .fc-fav-btn:focus-visible,
+  .fc-rate-btn:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
+
+  /* toolbar right group */
+  .fc-toolbar-right { display: flex; align-items: center; gap: 0.4rem; }
+
+  /* favorite button */
+  .fc-fav-btn {
+    display: inline-flex; align-items: center; justify-content: center; padding: 0.3rem;
+    border: none; border-radius: 50%; background: none;
+    color: var(--sl-color-gray-3); cursor: pointer; transition: color 0.15s, transform 0.15s;
+  }
+  .fc-fav-btn:hover { color: #f87171; transform: scale(1.15); }
+  .fc-fav-btn.fc-fav-on { color: #ef4444; }
+  .fc-fav-btn.fc-fav-on svg { fill: #ef4444; }
+
+  /* favorites filter active */
+  .fc-fav-active { background: #fecaca; color: #b91c1c !important; border-color: #fca5a5 !important; }
+
+  /* rating buttons */
+  .fc-rating {
+    display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;
+  }
+  .fc-rate-btn {
+    padding: 0.35rem 1rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
+    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
+    color: var(--sl-color-white); transition: all 0.15s;
+  }
+  .fc-rate-again { border-color: #f87171; color: #f87171; }
+  .fc-rate-again:hover { background: #f87171; color: var(--sl-color-black); }
+  .fc-rate-hard { border-color: #fbbf24; color: #fbbf24; }
+  .fc-rate-hard:hover { background: #fbbf24; color: var(--sl-color-black); }
+  .fc-rate-easy { border-color: #4ade80; color: #4ade80; }
+  .fc-rate-easy:hover { background: #4ade80; color: var(--sl-color-black); }
+
+  /* stats */
+  .fc-stats-line { color: var(--sl-color-text-accent); font-weight: 600; }
+  .fc-lifetime-stats { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-bottom: 1rem; }
+
+  /* screen-reader only */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
 </style>

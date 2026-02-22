@@ -6,7 +6,9 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "check": "astro check",
+    "extract-flashcards": "node scripts/extract-flashcard-data.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.32",

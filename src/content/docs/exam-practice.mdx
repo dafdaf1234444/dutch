@@ -4,11 +4,14 @@ description: Practice questions modeled on the Dutch inburgeringsexamen and NT2 
 ---
 
 import DutchAudio from '@components/DutchAudio.astro';
+import ExamPractice from '@components/ExamPractice.astro';
 import PageFlashcards from '@components/PageFlashcards.astro';
 
 <DutchAudio />
 
-Practice questions inspired by the Dutch civic integration exam (*inburgeringsexamen*) and NT2 *Staatsexamen*. These cover reading comprehension, grammar, vocabulary, and Knowledge of Dutch Society (KNM). Answers are revealed below each section.
+Practice questions inspired by the Dutch civic integration exam (*inburgeringsexamen*) and NT2 *Staatsexamen*. These cover reading comprehension, grammar, vocabulary, and Knowledge of Dutch Society (KNM). Select your answer and click **Check Answers** for instant feedback.
+
+<ExamPractice />
 
 ---
 
@@ -29,16 +32,6 @@ Read each short text, then answer the question.
 > Met vriendelijke groet,
 > Bibliotheek Utrecht
 
-**Vraag 1:** Wanneer moeten de boeken terug zijn?
-- A) Op 3 januari
-- B) Vóór 24 januari
-- C) Na drie maanden
-
-**Vraag 2:** Wat kan meneer Bakker ook doen?
-- A) Nieuwe boeken kopen
-- B) De boeken online verlengen
-- C) De bibliotheek bellen
-
 ### Text 2 — Notice
 
 > **LET OP — Werkzaamheden**
@@ -46,16 +39,6 @@ Read each short text, then answer the question.
 > Van maandag 10 maart tot en met vrijdag 14 maart is de Hoofdstraat afgesloten voor al het verkeer. Fietsers en voetgangers kunnen via de Kerkstraat omlopen. Autoverkeer wordt omgeleid via de N201. Wij bieden onze excuses aan voor het ongemak.
 >
 > Gemeente Amstelveen
-
-**Vraag 3:** Hoe lang is de Hoofdstraat dicht?
-- A) Eén dag
-- B) Eén week
-- C) Vijf dagen
-
-**Vraag 4:** Wat moeten fietsers doen?
-- A) Thuis blijven
-- B) Via de Kerkstraat omlopen
-- C) Via de N201 rijden
 
 ### Text 3 — Advertisement
 
@@ -65,27 +48,71 @@ Read each short text, then answer the question.
 >
 > Reageer vóór 1 april via werk@schoonbedrijf.nl
 
-**Vraag 5:** Hoeveel uur per week is het werk?
-- A) 10 uur
-- B) 20 uur
-- C) 40 uur
+<div class="exam-mcq" data-section="reading">
 
-**Vraag 6:** Moet je ervaring hebben?
-- A) Ja, dat is verplicht
-- B) Nee, maar het is een voordeel
-- C) Ja, minstens twee jaar
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">1. Wanneer moeten de boeken terug zijn?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-1" value="A" /> A) Op 3 januari</label>
+<label data-value="B"><input type="radio" name="read-1" value="B" /> B) Vóór 24 januari</label>
+<label data-value="C"><input type="radio" name="read-1" value="C" /> C) Na drie maanden</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-<details>
-<summary>**Antwoorden Reading Comprehension**</summary>
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">2. Wat kan meneer Bakker ook doen?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-2" value="A" /> A) Nieuwe boeken kopen</label>
+<label data-value="B"><input type="radio" name="read-2" value="B" /> B) De boeken online verlengen</label>
+<label data-value="C"><input type="radio" name="read-2" value="C" /> C) De bibliotheek bellen</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-1. **B** — Vóór 24 januari
-2. **B** — De boeken online verlengen
-3. **C** — Vijf dagen (maandag t/m vrijdag)
-4. **B** — Via de Kerkstraat omlopen
-5. **B** — 20 uur
-6. **B** — Nee, maar het is een voordeel ("een pré maar niet vereist")
+<div class="exam-q" data-answer="C">
+<div class="exam-q-text">3. Hoe lang is de Hoofdstraat dicht?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-3" value="A" /> A) Eén dag</label>
+<label data-value="B"><input type="radio" name="read-3" value="B" /> B) Eén week</label>
+<label data-value="C"><input type="radio" name="read-3" value="C" /> C) Vijf dagen</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-</details>
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">4. Wat moeten fietsers doen?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-4" value="A" /> A) Thuis blijven</label>
+<label data-value="B"><input type="radio" name="read-4" value="B" /> B) Via de Kerkstraat omlopen</label>
+<label data-value="C"><input type="radio" name="read-4" value="C" /> C) Via de N201 rijden</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">5. Hoeveel uur per week is het werk?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-5" value="A" /> A) 10 uur</label>
+<label data-value="B"><input type="radio" name="read-5" value="B" /> B) 20 uur</label>
+<label data-value="C"><input type="radio" name="read-5" value="C" /> C) 40 uur</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">6. Moet je ervaring hebben?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="read-6" value="A" /> A) Ja, dat is verplicht</label>
+<label data-value="B"><input type="radio" name="read-6" value="B" /> B) Nee, maar het is een voordeel</label>
+<label data-value="C"><input type="radio" name="read-6" value="C" /> C) Ja, minstens twee jaar</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ---
 
@@ -95,59 +122,121 @@ Read each short text, then answer the question.
 
 Complete each sentence with the correct present tense form.
 
-1. Ik ______ (werken) elke dag van negen tot vijf.
-2. Zij ______ (hebben) twee kinderen.
-3. Wij ______ (gaan) morgen naar de markt.
-4. ______ (kunnen) jij goed Nederlands spreken?
-5. Hij ______ (zijn) al drie jaar in Nederland.
-6. De kinderen ______ (spelen) buiten in de tuin.
-7. ______ (willen) u nog iets drinken?
-8. Ik ______ (moeten) morgen vroeg opstaan.
+<div class="exam-fill" data-section="grammar-verbs">
+
+<div class="exam-fill-item" data-answer="werk">
+<div class="exam-fill-text">1. Ik <input type="text" class="exam-fill-input" placeholder="(werken)" autocomplete="off" /> elke dag van negen tot vijf.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="heeft|heeft">
+<div class="exam-fill-text">2. Zij <input type="text" class="exam-fill-input" placeholder="(hebben)" autocomplete="off" /> twee kinderen.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="gaan">
+<div class="exam-fill-text">3. Wij <input type="text" class="exam-fill-input" placeholder="(gaan)" autocomplete="off" /> morgen naar de markt.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="kun|kan">
+<div class="exam-fill-text">4. <input type="text" class="exam-fill-input" placeholder="(kunnen)" autocomplete="off" /> jij goed Nederlands spreken?</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="is">
+<div class="exam-fill-text">5. Hij <input type="text" class="exam-fill-input" placeholder="(zijn)" autocomplete="off" /> al drie jaar in Nederland.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="spelen">
+<div class="exam-fill-text">6. De kinderen <input type="text" class="exam-fill-input" placeholder="(spelen)" autocomplete="off" /> buiten in de tuin.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="wilt|wil">
+<div class="exam-fill-text">7. <input type="text" class="exam-fill-input" placeholder="(willen)" autocomplete="off" /> u nog iets drinken?</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="moet">
+<div class="exam-fill-text">8. Ik <input type="text" class="exam-fill-input" placeholder="(moeten)" autocomplete="off" /> morgen vroeg opstaan.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ### Choose the Correct Article: *de* or *het*
 
-9. ______ huis is groot.
-10. ______ vrouw werkt bij de bank.
-11. ______ kind speelt in de tuin.
-12. ______ boeken liggen op tafel.
-13. ______ station is dichtbij.
-14. ______ kat slaapt op ______ bank.
+<div class="exam-fill" data-section="grammar-articles">
+
+<div class="exam-fill-item" data-answer="het">
+<div class="exam-fill-text">9. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> huis is groot.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="de">
+<div class="exam-fill-text">10. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> vrouw werkt bij de bank.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="het">
+<div class="exam-fill-text">11. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> kind speelt in de tuin.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="de">
+<div class="exam-fill-text">12. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> boeken liggen op tafel.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="het">
+<div class="exam-fill-text">13. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> station is dichtbij.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-fill-item" data-answer="de">
+<div class="exam-fill-text">14. <input type="text" class="exam-fill-input" placeholder="de/het" autocomplete="off" /> kat slaapt op de bank.</div>
+<div class="exam-feedback"></div>
+</div>
+
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ### Word Order — Put the Words in the Right Order
 
-15. (morgen / ik / ga / naar school)
-16. (wij / vandaag / gaan / niet / werken)
-17. (waarom / jij / komt / niet / naar het feest / ?)
-18. (hij / zegt / dat / hij / morgen / komt)
+<div class="exam-order" data-section="grammar-wordorder">
 
-<details>
-<summary>**Antwoorden Grammar**</summary>
+<div class="exam-order-item" data-answer="Morgen ga ik naar school.|Ik ga morgen naar school.">
+<div class="exam-order-words">Words: morgen / ik / ga / naar school</div>
+<input type="text" class="exam-order-input" placeholder="Write the sentence..." autocomplete="off" />
+<div class="exam-feedback"></div>
+</div>
 
-**Verb forms:**
-1. werk
-2. heeft
-3. gaan
-4. Kun
-5. is
-6. spelen
-7. Wilt
-8. moet
+<div class="exam-order-item" data-answer="Wij gaan vandaag niet werken.|Vandaag gaan wij niet werken.">
+<div class="exam-order-words">Words: wij / vandaag / gaan / niet / werken</div>
+<input type="text" class="exam-order-input" placeholder="Write the sentence..." autocomplete="off" />
+<div class="exam-feedback"></div>
+</div>
 
-**Articles:**
-9. Het huis
-10. De vrouw
-11. Het kind
-12. De boeken
-13. Het station
-14. De kat ... de bank
+<div class="exam-order-item" data-answer="Waarom kom jij niet naar het feest?|Waarom komt jij niet naar het feest?">
+<div class="exam-order-words">Words: waarom / jij / komt / niet / naar het feest / ?</div>
+<input type="text" class="exam-order-input" placeholder="Write the sentence..." autocomplete="off" />
+<div class="exam-feedback"></div>
+</div>
 
-**Word order:**
-15. Morgen ga ik naar school. *(time first, verb second)*
-16. Wij gaan vandaag niet werken.
-17. Waarom kom jij niet naar het feest?
-18. Hij zegt dat hij morgen komt. *(subordinate clause: verb last)*
+<div class="exam-order-item" data-answer="Hij zegt dat hij morgen komt.">
+<div class="exam-order-words">Words: hij / zegt / dat / hij / morgen / komt</div>
+<input type="text" class="exam-order-input" placeholder="Write the sentence..." autocomplete="off" />
+<div class="exam-feedback"></div>
+</div>
 
-</details>
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ---
 
@@ -155,38 +244,131 @@ Complete each sentence with the correct present tense form.
 
 Choose the correct meaning.
 
-| # | Dutch | A | B | C |
-|---|-------|---|---|---|
-| 1 | de afspraak | the distance | the appointment | the afternoon |
-| 2 | het recept | the recipe/prescription | the reception | the receipt |
-| 3 | de buurman | the bus driver | the neighbour | the brother |
-| 4 | gevaarlijk | generous | dangerous | comfortable |
-| 5 | verboden | forbidden | connected | improved |
-| 6 | de klacht | the classroom | the complaint | the clothing |
-| 7 | verhuizen | to rent | to move (house) | to clean |
-| 8 | de verzekering | the insurance | the surprise | the collection |
-| 9 | goedkoop | good quality | expensive | cheap |
-| 10 | de sollicitatie | the solution | the job application | the holiday |
-| 11 | de huisarts | the hospital | the GP/family doctor | the pharmacist |
-| 12 | de borg | the bridge | the castle | the deposit |
+<div class="exam-mcq" data-section="vocabulary">
 
-<details>
-<summary>**Antwoorden Vocabulary Quiz**</summary>
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">1. de afspraak</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-1" value="A" /> A) the distance</label>
+<label data-value="B"><input type="radio" name="vocab-1" value="B" /> B) the appointment</label>
+<label data-value="C"><input type="radio" name="vocab-1" value="C" /> C) the afternoon</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-1. **B** — the appointment
-2. **A** — the recipe / prescription
-3. **B** — the neighbour
-4. **B** — dangerous
-5. **A** — forbidden
-6. **B** — the complaint
-7. **B** — to move (house)
-8. **A** — the insurance
-9. **C** — cheap
-10. **B** — the job application
-11. **B** — the GP / family doctor
-12. **C** — the deposit
+<div class="exam-q" data-answer="A">
+<div class="exam-q-text">2. het recept</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-2" value="A" /> A) the recipe/prescription</label>
+<label data-value="B"><input type="radio" name="vocab-2" value="B" /> B) the reception</label>
+<label data-value="C"><input type="radio" name="vocab-2" value="C" /> C) the receipt</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-</details>
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">3. de buurman</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-3" value="A" /> A) the bus driver</label>
+<label data-value="B"><input type="radio" name="vocab-3" value="B" /> B) the neighbour</label>
+<label data-value="C"><input type="radio" name="vocab-3" value="C" /> C) the brother</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">4. gevaarlijk</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-4" value="A" /> A) generous</label>
+<label data-value="B"><input type="radio" name="vocab-4" value="B" /> B) dangerous</label>
+<label data-value="C"><input type="radio" name="vocab-4" value="C" /> C) comfortable</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="A">
+<div class="exam-q-text">5. verboden</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-5" value="A" /> A) forbidden</label>
+<label data-value="B"><input type="radio" name="vocab-5" value="B" /> B) connected</label>
+<label data-value="C"><input type="radio" name="vocab-5" value="C" /> C) improved</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">6. de klacht</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-6" value="A" /> A) the classroom</label>
+<label data-value="B"><input type="radio" name="vocab-6" value="B" /> B) the complaint</label>
+<label data-value="C"><input type="radio" name="vocab-6" value="C" /> C) the clothing</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">7. verhuizen</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-7" value="A" /> A) to rent</label>
+<label data-value="B"><input type="radio" name="vocab-7" value="B" /> B) to move (house)</label>
+<label data-value="C"><input type="radio" name="vocab-7" value="C" /> C) to clean</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="A">
+<div class="exam-q-text">8. de verzekering</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-8" value="A" /> A) the insurance</label>
+<label data-value="B"><input type="radio" name="vocab-8" value="B" /> B) the surprise</label>
+<label data-value="C"><input type="radio" name="vocab-8" value="C" /> C) the collection</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="C">
+<div class="exam-q-text">9. goedkoop</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-9" value="A" /> A) good quality</label>
+<label data-value="B"><input type="radio" name="vocab-9" value="B" /> B) expensive</label>
+<label data-value="C"><input type="radio" name="vocab-9" value="C" /> C) cheap</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">10. de sollicitatie</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-10" value="A" /> A) the solution</label>
+<label data-value="B"><input type="radio" name="vocab-10" value="B" /> B) the job application</label>
+<label data-value="C"><input type="radio" name="vocab-10" value="C" /> C) the holiday</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">11. de huisarts</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-11" value="A" /> A) the hospital</label>
+<label data-value="B"><input type="radio" name="vocab-11" value="B" /> B) the GP/family doctor</label>
+<label data-value="C"><input type="radio" name="vocab-11" value="C" /> C) the pharmacist</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="C">
+<div class="exam-q-text">12. de borg</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="vocab-12" value="A" /> A) the bridge</label>
+<label data-value="B"><input type="radio" name="vocab-12" value="B" /> B) the castle</label>
+<label data-value="C"><input type="radio" name="vocab-12" value="C" /> C) the deposit</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ---
 
@@ -194,95 +376,131 @@ Choose the correct meaning.
 
 These questions cover Dutch customs, laws, institutions, and practical life in the Netherlands.
 
-### Work & Income
+<div class="exam-mcq" data-section="knm">
 
-**1.** You start a new job with a 2-month *proeftijd* (probation period). In week 1 you feel very ill. What should you do?
-- A) Stay home and say nothing
-- B) Call your employer the same day and follow the sick-leave rules
-- C) Go to work because you are in your probation period
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">1. You start a new job with a 2-month proeftijd (probation period). In week 1 you feel very ill. What should you do?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-1" value="A" /> A) Stay home and say nothing</label>
+<label data-value="B"><input type="radio" name="knm-1" value="B" /> B) Call your employer the same day and follow the sick-leave rules</label>
+<label data-value="C"><input type="radio" name="knm-1" value="C" /> C) Go to work because you are in your probation period</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**2.** You receive a *loonstrook* (payslip). What information can you find there?
-- A) Only your holiday hours
-- B) Gross/net salary, hours worked, taxes, and pension contributions
-- C) Your rental contract details
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">2. You receive a loonstrook (payslip). What information can you find there?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-2" value="A" /> A) Only your holiday hours</label>
+<label data-value="B"><input type="radio" name="knm-2" value="B" /> B) Gross/net salary, hours worked, taxes, and pension contributions</label>
+<label data-value="C"><input type="radio" name="knm-2" value="C" /> C) Your rental contract details</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-### Housing
+<div class="exam-q" data-answer="A">
+<div class="exam-q-text">3. Your rental boiler stops working. What is the first thing you should do?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-3" value="A" /> A) Tell your landlord or housing association (woningcorporatie)</label>
+<label data-value="B"><input type="radio" name="knm-3" value="B" /> B) Call 112</label>
+<label data-value="C"><input type="radio" name="knm-3" value="C" /> C) Buy a new boiler yourself</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**3.** Your rental boiler stops working. What is the first thing you should do?
-- A) Tell your landlord or housing association (*woningcorporatie*)
-- B) Call 112
-- C) Buy a new boiler yourself
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">4. You want social housing (sociale huurwoning). What do you usually do first?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-4" value="A" /> A) Wait for a phone call from the municipality</label>
+<label data-value="B"><input type="radio" name="knm-4" value="B" /> B) Register on the regional housing website</label>
+<label data-value="C"><input type="radio" name="knm-4" value="C" /> C) Ask a neighbour to transfer their contract</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**4.** You want social housing (*sociale huurwoning*). What do you usually do first?
-- A) Wait for a phone call from the municipality
-- B) Register on the regional housing website
-- C) Ask a neighbour to transfer their contract
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">5. It's Saturday night and you have a bad ear infection. What do you do?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-5" value="A" /> A) Wait until Monday to call your GP</label>
+<label data-value="B"><input type="radio" name="knm-5" value="B" /> B) Call the huisartsenpost (out-of-hours GP service)</label>
+<label data-value="C"><input type="radio" name="knm-5" value="C" /> C) Call your employer</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-### Healthcare
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">6. There is danger to someone's life. What number do you call?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-6" value="A" /> A) 0900-8844</label>
+<label data-value="B"><input type="radio" name="knm-6" value="B" /> B) 112</label>
+<label data-value="C"><input type="radio" name="knm-6" value="C" /> C) 114</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**5.** It's Saturday night and you have a bad ear infection. What do you do?
-- A) Wait until Monday to call your GP
-- B) Call the *huisartsenpost* (out-of-hours GP service)
-- C) Call your employer
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">7. Your child is 5 years old and must attend school. You want to go on holiday during school weeks. What is correct?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-7" value="A" /> A) No problem — parents decide when to take holidays</label>
+<label data-value="B"><input type="radio" name="knm-7" value="B" /> B) You must ask permission from the school; usually you can only go during school holidays</label>
+<label data-value="C"><input type="radio" name="knm-7" value="C" /> C) You can tell the child to stay home any time</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**6.** There is danger to someone's life. What number do you call?
-- A) 0900-8844
-- B) 112
-- C) 114
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">8. Who should you talk to about your teenager's grades and behavior at school?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-8" value="A" /> A) The municipality (gemeente)</label>
+<label data-value="B"><input type="radio" name="knm-8" value="B" /> B) The mentor or teacher at school</label>
+<label data-value="C"><input type="radio" name="knm-8" value="C" /> C) The tax office (Belastingdienst)</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-### Education
+<div class="exam-q" data-answer="A">
+<div class="exam-q-text">9. You move to a new city. Within how many days must you register your address at the municipality (gemeente)?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-9" value="A" /> A) Usually within 5 days of moving</label>
+<label data-value="B"><input type="radio" name="knm-9" value="B" /> B) After 1 year</label>
+<label data-value="C"><input type="radio" name="knm-9" value="C" /> C) You never need to register</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**7.** Your child is 5 years old and must attend school. You want to go on holiday during school weeks. What is correct?
-- A) No problem — parents decide when to take holidays
-- B) You must ask permission from the school; usually you can only go during school holidays
-- C) You can tell the child to stay home any time
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">10. You need to log in to a government website. What do you use?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-10" value="A" /> A) A random password</label>
+<label data-value="B"><input type="radio" name="knm-10" value="B" /> B) DigiD</label>
+<label data-value="C"><input type="radio" name="knm-10" value="C" /> C) Your bank card</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**8.** Who should you talk to about your teenager's grades and behavior at school?
-- A) The municipality (*gemeente*)
-- B) The mentor or teacher at school
-- C) The tax office (*Belastingdienst*)
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">11. A colleague touches you without your consent at work. What is correct?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-11" value="A" /> A) It's normal in the Netherlands</label>
+<label data-value="B"><input type="radio" name="knm-11" value="B" /> B) It is not acceptable — you can say no and report it</label>
+<label data-value="C"><input type="radio" name="knm-11" value="C" /> C) Only your manager can decide</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-### Government & Rules
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">12. On 4 May at 20:00, what do people across the Netherlands do?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="knm-12" value="A" /> A) Set off fireworks</label>
+<label data-value="B"><input type="radio" name="knm-12" value="B" /> B) Hold two minutes of silence (dodenherdenking)</label>
+<label data-value="C"><input type="radio" name="knm-12" value="C" /> C) Go to work</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-**9.** You move to a new city. Within how many days must you register your address at the municipality (*gemeente*)?
-- A) Usually within 5 days of moving
-- B) After 1 year
-- C) You never need to register
-
-**10.** You need to log in to a government website. What do you use?
-- A) A random password
-- B) DigiD
-- C) Your bank card
-
-### Values & Participation
-
-**11.** A colleague touches you without your consent at work. What is correct?
-- A) It's normal in the Netherlands
-- B) It is not acceptable — you can say no and report it
-- C) Only your manager can decide
-
-**12.** On 4 May at 20:00, what do people across the Netherlands do?
-- A) Set off fireworks
-- B) Hold two minutes of silence (*dodenherdenking*)
-- C) Go to work
-
-<details>
-<summary>**Antwoorden KNM**</summary>
-
-1. **B** — Call your employer the same day and follow sick-leave rules
-2. **B** — Gross/net salary, hours, taxes, pension
-3. **A** — Tell your landlord or housing association
-4. **B** — Register on the regional housing website
-5. **B** — Call the *huisartsenpost*
-6. **B** — 112
-7. **B** — Must ask permission; usually school holidays only
-8. **B** — The mentor or teacher at school
-9. **A** — Usually within 5 days
-10. **B** — DigiD
-11. **B** — Not acceptable; you can say no and report
-12. **B** — Two minutes of silence (*dodenherdenking*)
-
-</details>
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ---
 
@@ -298,16 +516,61 @@ The exam includes listening to audio and answering questions. Practice by clicki
 | Het weer voor morgen: bewolkt met af en toe regen. De temperatuur wordt maximaal acht graden. | Hoe wordt het weer morgen? | Zonnig en warm | Bewolkt met regen | Sneeuw |
 | Uw pakje is bezorgd bij de buren op nummer 42. U kunt het daar ophalen. | Waar is het pakje? | Op het postkantoor | Bij de buren | In de winkel |
 
-<details>
-<summary>**Antwoorden Listening Practice**</summary>
+<div class="exam-mcq" data-section="listening">
 
-1. **B** — Om kwart over drie
-2. **B** — Een afspraak bij de huisarts
-3. **B** — Morgen
-4. **B** — Bewolkt met regen
-5. **B** — Bij de buren
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">1. Hoe laat vertrekt de trein?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="listen-1" value="A" /> A) Om drie uur</label>
+<label data-value="B"><input type="radio" name="listen-1" value="B" /> B) Om kwart over drie</label>
+<label data-value="C"><input type="radio" name="listen-1" value="C" /> C) Om vijf uur</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
 
-</details>
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">2. Wat wil de persoon?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="listen-2" value="A" /> A) Een afspraak bij de tandarts</label>
+<label data-value="B"><input type="radio" name="listen-2" value="B" /> B) Een afspraak bij de huisarts</label>
+<label data-value="C"><input type="radio" name="listen-2" value="C" /> C) Een recept ophalen</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">3. Wanneer is de supermarkt dicht?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="listen-3" value="A" /> A) Vandaag</label>
+<label data-value="B"><input type="radio" name="listen-3" value="B" /> B) Morgen</label>
+<label data-value="C"><input type="radio" name="listen-3" value="C" /> C) Volgende week</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">4. Hoe wordt het weer morgen?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="listen-4" value="A" /> A) Zonnig en warm</label>
+<label data-value="B"><input type="radio" name="listen-4" value="B" /> B) Bewolkt met regen</label>
+<label data-value="C"><input type="radio" name="listen-4" value="C" /> C) Sneeuw</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<div class="exam-q" data-answer="B">
+<div class="exam-q-text">5. Waar is het pakje?</div>
+<div class="exam-choices">
+<label data-value="A"><input type="radio" name="listen-5" value="A" /> A) Op het postkantoor</label>
+<label data-value="B"><input type="radio" name="listen-5" value="B" /> B) Bij de buren</label>
+<label data-value="C"><input type="radio" name="listen-5" value="C" /> C) In de winkel</label>
+</div>
+<div class="exam-feedback"></div>
+</div>
+
+<button class="exam-check" type="button">Check Answers</button>
+<div class="exam-result"></div>
+</div>
 
 ---
 

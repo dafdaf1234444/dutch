@@ -18,6 +18,10 @@
   background-color: var(--sl-color-accent-low);
   transform: scale(1.1);
 }
+.dutch-audio-btn:focus-visible {
+  outline: 2px solid var(--sl-color-text-accent);
+  outline-offset: 2px;
+}
 @keyframes pulse-speak {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
@@ -154,6 +158,11 @@ tr.audio-row-active {
   background-color: var(--sl-color-gray-6);
   border-color: var(--sl-color-gray-3);
   color: var(--sl-color-white);
+}
+.ap-mode-btn:focus-visible, .ap-select-btn:focus-visible,
+.ap-play-btn:focus-visible, .ap-stop-btn:focus-visible {
+  outline: 2px solid var(--sl-color-text-accent);
+  outline-offset: 2px;
 }
 .ap-mode-btn.ap-mode-active {
   background: var(--sl-color-text-accent);
