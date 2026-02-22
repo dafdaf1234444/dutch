@@ -6,7 +6,7 @@ export default defineConfig({
   base: "/dutch",
   integrations: [
     starlight({
-      title: "Dutch Learning",
+      title: "Dutch",
       pagination: false,
       customCss: ["./src/styles/custom.css"],
       sidebar: [

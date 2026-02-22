@@ -208,13 +208,14 @@ class FlashcardApp extends HTMLElement {
     });
     this.current = 0;
     this.flipped = false;
-    this.correctCount = 0;
-    this.totalAnswered = 0;
+    // Preserve correctCount and totalAnswered so reshuffle doesn't erase progress
     this.renderCard();
   }
 
   checkAnswer(input: string, correct: string): boolean {
-    const normalize = (s: string) => s.toLowerCase().trim().replace(/[?!.,;:'"]/g, "");
+    const normalize = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+       .toLowerCase().trim().replace(/[?!.,;:'"]/g, "");
     return normalize(input) === normalize(correct);
   }
 
@@ -361,10 +362,10 @@ class FlashcardApp extends HTMLElement {
       <div class="fc-container">
         <div class="fc-toolbar">
           <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back" type="button">Back</button>
-          <span class="fc-counter">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score">${this.correctCount}/${this.totalAnswered}</span> · ` : ""}${num} / ${total}</span>
+          <span class="fc-counter">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score" aria-live="polite">${this.correctCount}/${this.totalAnswered}</span> · ` : ""}${num} / ${total}</span>
           <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
         </div>
-        <div class="fc-progress-bar"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
+        <div class="fc-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
 
         <div class="fc-card-row">
           <button class="fc-nav fc-nav-prev ${this.current === 0 ? "fc-nav-disabled" : ""}" id="fc-prev" type="button" title="Previous card" aria-label="Previous card">&#8249;</button>
@@ -406,7 +407,7 @@ class FlashcardApp extends HTMLElement {
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") { e.preventDefault(); this.submitDictation(); }
         });
-        setTimeout(() => input.focus(), 50);
+        requestAnimationFrame(() => input.focus());
       }
     }
 
@@ -423,6 +424,10 @@ class FlashcardApp extends HTMLElement {
         this.renderCard();
       });
     });
+
+    /* Auto-scroll word list to keep current card visible */
+    const currentRow = this.querySelector<HTMLTableRowElement>(".fc-wl-current");
+    if (currentRow) currentRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 }
 

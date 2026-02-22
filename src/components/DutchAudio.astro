@@ -90,7 +90,70 @@
     return "Untitled";
   }
 
+  const IPA_HEADERS = new Set(["ipa", "pronunciation"]);
+
+  /* Move IPA from its own column to small text below the Dutch word,
+     then hide the IPA column. Works with single and dual-IPA tables. */
+  function relocateIPA() {
+    for (const table of document.querySelectorAll("table")) {
+      const headers = table.querySelectorAll("thead th");
+      if (headers.length === 0) continue;
+
+      // Find all IPA columns and their paired Dutch columns
+      const ipaCols: { ipaIdx: number; dutchIdx: number }[] = [];
+      headers.forEach((th, i) => {
+        const text = th.textContent?.trim().toLowerCase() ?? "";
+        if (!IPA_HEADERS.has(text)) return;
+        // Pair with the nearest preceding Dutch/audio column
+        let dutchIdx = -1;
+        for (let j = i - 1; j >= 0; j--) {
+          const hdr = headers[j].textContent?.trim().toLowerCase() ?? "";
+          if (AUDIO_HEADERS.has(hdr) || AUDIO_PREFIXES.some(p => hdr.startsWith(p))) {
+            // Make sure this Dutch column isn't already paired
+            if (!ipaCols.some(c => c.dutchIdx === j)) { dutchIdx = j; break; }
+          }
+        }
+        if (dutchIdx >= 0) ipaCols.push({ ipaIdx: i, dutchIdx });
+      });
+      if (ipaCols.length === 0) continue;
+
+      // Move IPA text below Dutch text in each row
+      const rows = table.querySelectorAll("tbody tr");
+      for (const row of rows) {
+        const cells = row.querySelectorAll("td");
+        for (const { ipaIdx, dutchIdx } of ipaCols) {
+          const ipaCell = cells[ipaIdx];
+          const dutchCell = cells[dutchIdx];
+          if (!ipaCell || !dutchCell) continue;
+          const ipaText = ipaCell.textContent?.trim() ?? "";
+          if (!ipaText) continue;
+          const sub = document.createElement("span");
+          sub.className = "dutch-ipa-sub";
+          sub.textContent = ipaText;
+          dutchCell.appendChild(sub);
+          ipaCell.textContent = "";
+          ipaCell.classList.add("ipa-col-hidden");
+        }
+      }
+
+      // Hide IPA header cells
+      for (const { ipaIdx } of ipaCols) {
+        headers[ipaIdx].textContent = "";
+        headers[ipaIdx].classList.add("ipa-col-hidden");
+        // Also hide separator cells if they exist
+        const sep = table.querySelector("thead tr:nth-child(2)");
+        if (sep) {
+          const sepCells = sep.querySelectorAll("th, td");
+          if (sepCells[ipaIdx]) sepCells[ipaIdx].classList.add("ipa-col-hidden");
+        }
+      }
+    }
+  }
+
   function injectDutchAudio() {
+    // First relocate IPA below Dutch words
+    relocateIPA();
+
     const tables = document.querySelectorAll("table");
     const audioTables: HTMLTableElement[] = [];
     const groups: SentenceGroup[] = [];

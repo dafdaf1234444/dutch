@@ -262,3 +262,17 @@ tr.audio-row-active {
   font-size: 0.8em;
   font-weight: 500;
 }
+
+/* ---- Inline IPA (relocated from table columns) ---- */
+
+.dutch-ipa-sub {
+  display: block;
+  font-size: 0.78em;
+  color: var(--sl-color-gray-3);
+  line-height: 1.3;
+  margin-top: 0.15em;
+}
+
+.ipa-col-hidden {
+  display: none;
+}

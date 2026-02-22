@@ -1,6 +1,8 @@
-# Dutch Learning Website
+# Dutch
 
 Interactive Dutch language learning site built with **Astro 5 + Starlight**.
+
+**Live site:** https://dafdaf1234444.github.io/dutch/
 
 ## Quick Start
 
@@ -83,6 +85,8 @@ English in `*(italics)*` or `(parentheses)` is stripped before speaking.
 ### IPA Coverage
 
 All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑloː/` ``). This covers vocabulary tables, grammar tables (verbs, diminutives, articles, word order, patterns), phrase pages, and dialogue pages. The extraction script picks up IPA columns automatically.
+
+**Inline IPA display:** The `DutchAudio` component automatically relocates IPA from its own table column to small text below the Dutch word at render time (`relocateIPA()` function). This saves table width while keeping IPA visible. The IPA column headers (`IPA`, `Pronunciation`) are detected and hidden after relocation.
 
 ### Flashcard System
 
