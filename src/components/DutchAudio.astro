@@ -180,6 +180,7 @@
         const cells = row.querySelectorAll("td");
         const rowTexts: string[] = [];
         const rowDisplays: string[] = [];
+        const rowIpas: string[] = [];
         for (const colIdx of audioColIndices) {
           const cell = cells[colIdx];
           if (!cell || cell.querySelector(".dutch-audio-btn")) continue;
@@ -188,11 +189,16 @@
           cell.appendChild(createBtn(text));
           rowTexts.push(text);
           rowDisplays.push(text);
+          // Extract IPA from relocated spans
+          const ipaSpan = cell.querySelector('.dutch-ipa-sub');
+          const ipa = ipaSpan?.textContent?.trim() ?? "";
+          if (ipa) rowIpas.push(ipa);
         }
         if (rowTexts.length > 0) {
           sentences.push({
             text: rowTexts.join(". "),
             display: rowDisplays.join(" — "),
+            ipa: rowIpas.length > 0 ? rowIpas.join(" — ") : undefined,
           });
         }
       }

@@ -214,6 +214,18 @@ tr.audio-row-active {
 }
 .ap-item-text {
   line-height: 1.4;
+  cursor: pointer;
+}
+.ap-item-text:hover {
+  color: var(--sl-color-text-accent);
+  text-decoration: underline;
+}
+.ap-item-ipa {
+  font-size: 0.75em;
+  color: var(--sl-color-gray-3);
+  line-height: 1.3;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Blind listening mode */
@@ -229,11 +241,12 @@ tr.audio-row-active {
 /* Transport controls */
 .audio-panel-transport {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.35rem;
   margin-bottom: 0.4rem;
+  flex-wrap: wrap;
 }
-.ap-play-btn, .ap-stop-btn {
-  padding: 0.35rem 1rem;
+.ap-play-btn, .ap-stop-btn, .ap-transport-btn {
+  padding: 0.35rem 0.8rem;
   border-radius: 0.35rem;
   font-size: 0.82em;
   font-weight: 600;
@@ -249,7 +262,7 @@ tr.audio-row-active {
 .ap-play-btn:hover:not(:disabled) {
   opacity: 0.85;
 }
-.ap-play-btn:disabled, .ap-stop-btn:disabled {
+.ap-play-btn:disabled, .ap-stop-btn:disabled, .ap-transport-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -260,6 +273,19 @@ tr.audio-row-active {
 .ap-stop-btn:hover:not(:disabled) {
   background-color: var(--sl-color-gray-6);
   color: var(--sl-color-white);
+}
+.ap-transport-btn {
+  background: none;
+  color: var(--sl-color-gray-3);
+}
+.ap-transport-btn:hover:not(:disabled) {
+  background-color: var(--sl-color-gray-6);
+  border-color: var(--sl-color-gray-3);
+  color: var(--sl-color-white);
+}
+.ap-transport-btn:focus-visible {
+  outline: 2px solid var(--sl-color-text-accent);
+  outline-offset: 2px;
 }
 
 /* Now playing bar */

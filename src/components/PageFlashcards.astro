@@ -149,8 +149,12 @@ class PageFlashcards extends HTMLElement {
   renderButton() {
     this.unbindKeys();
     this.innerHTML = `
-      <div class="pf-section">
-        <div class="pf-divider"></div>
+      <div class="pf-section pf-frame">
+        <div class="pf-frame-header">
+          <span class="pf-frame-icon">&#9881;</span>
+          <span class="pf-frame-title">Practice Flashcards</span>
+          <span class="pf-frame-count">${this.cards.length} cards on this page</span>
+        </div>
         <div class="pf-start-row">
           <div class="pf-dir-row">
             <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL→EN</button>
@@ -159,7 +163,7 @@ class PageFlashcards extends HTMLElement {
             <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
           </div>
           <button class="pf-start-btn" id="pf-start" type="button">
-            Practice these words (${this.cards.length} cards)
+            Start Practice
           </button>
           <div class="pf-fc-link"><a href="/flashcards/">Practice all topics &rarr;</a></div>
         </div>
@@ -191,8 +195,11 @@ class PageFlashcards extends HTMLElement {
     if (this.current >= total) {
       this.unbindKeys();
       this.innerHTML = `
-        <div class="pf-section">
-          <div class="pf-divider"></div>
+        <div class="pf-section pf-frame">
+          <div class="pf-frame-header">
+            <span class="pf-frame-icon">&#10003;</span>
+            <span class="pf-frame-title">Practice Complete</span>
+          </div>
           <div class="pf-done">
             <p>You reviewed all ${total} cards.</p>
             <div class="pf-actions">
@@ -257,8 +264,7 @@ class PageFlashcards extends HTMLElement {
     }
 
     this.innerHTML = `
-      <div class="pf-section">
-        <div class="pf-divider"></div>
+      <div class="pf-section pf-frame">
         <div class="pf-header">
           <button class="pf-btn pf-btn-small pf-btn-secondary" id="pf-close" type="button">Close</button>
           <span class="pf-counter">${num} / ${total}</span>
@@ -301,7 +307,38 @@ customElements.define("page-flashcards", PageFlashcards);
 
 <style>
   .pf-section { max-width: 540px; margin: 2rem auto 0; }
-  .pf-divider { height: 1px; background: var(--sl-color-hairline); margin-bottom: 1.5rem; }
+
+  /* Frame container for clear visual separation */
+  .pf-frame {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background: var(--sl-color-bg-nav);
+    box-shadow: var(--sl-shadow-sm);
+    margin-top: 2.5rem;
+  }
+  .pf-frame-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  .pf-frame-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .pf-frame-title {
+    font-size: var(--sl-text-base);
+    font-weight: 700;
+    color: var(--sl-color-white);
+  }
+  .pf-frame-count {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    margin-left: auto;
+  }
 
   /* start area */
   .pf-start-row { display: flex; flex-direction: column; gap: 0.6rem; }

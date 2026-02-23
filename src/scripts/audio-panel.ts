@@ -1,12 +1,14 @@
 /**
- * Audio Player Panel — collapsible panel with speed slider, blind listening,
- * sentence group selection, play/stop, and now-playing indicator.
+ * Audio Player Panel — collapsible panel with speed slider (up to 3x),
+ * blind listening, sentence group selection, play/stop/next/prev/repeat,
+ * click-to-start-from, IPA display, and now-playing indicator.
  */
-import { speakSequence, getRate, setRate, stopAll } from "./dutch-speech";
+import { speakSequence, getRate, setRate, stopAll, type SequenceController } from "./dutch-speech";
 
 export interface SentenceItem {
   text: string;
   display: string;
+  ipa?: string;
 }
 
 export interface SentenceGroup {
@@ -45,7 +47,7 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   slider.type = "range";
   slider.className = "ap-speed-slider";
   slider.min = "0.5";
-  slider.max = "1.5";
+  slider.max = "3.0";
   slider.step = "0.05";
   slider.value = String(getRate());
   const speedValue = document.createElement("span");
@@ -107,6 +109,9 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   const allCheckboxes: HTMLInputElement[] = [];
   const allItems: HTMLDivElement[] = [];
 
+  // Build flat sentence list for lookup
+  const flatSentences: SentenceItem[] = [];
+
   for (let gi = 0; gi < groups.length; gi++) {
     const group = groups[gi];
     const groupEl = document.createElement("div");
@@ -129,6 +134,7 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
     const itemCheckboxes: HTMLInputElement[] = [];
     for (let si = 0; si < group.sentences.length; si++) {
       const sentence = group.sentences[si];
+      flatSentences.push(sentence);
       const item = document.createElement("div");
       item.className = "ap-item";
 
@@ -142,6 +148,15 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
       textSpan.textContent = sentence.display;
 
       item.append(cb, textSpan);
+
+      // Show IPA if available
+      if (sentence.ipa) {
+        const ipaSpan = document.createElement("span");
+        ipaSpan.className = "ap-item-ipa";
+        ipaSpan.textContent = sentence.ipa;
+        item.appendChild(ipaSpan);
+      }
+
       groupEl.appendChild(item);
 
       cb.addEventListener("change", () => {
@@ -150,6 +165,11 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
         const noneChecked = itemCheckboxes.every(c => !c.checked);
         groupCb.checked = allChecked;
         groupCb.indeterminate = !allChecked && !noneChecked;
+      });
+
+      // Click on sentence text to start playback from this point
+      textSpan.addEventListener("click", () => {
+        startPlayingFrom(allCheckboxes.indexOf(cb));
       });
 
       itemCheckboxes.push(cb);
@@ -188,6 +208,18 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   const transport = document.createElement("div");
   transport.className = "audio-panel-transport";
 
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "ap-transport-btn ap-prev-btn";
+  prevBtn.innerHTML = "&#9664; Prev";
+  prevBtn.disabled = true;
+
+  const repeatBtn = document.createElement("button");
+  repeatBtn.type = "button";
+  repeatBtn.className = "ap-transport-btn ap-repeat-btn";
+  repeatBtn.innerHTML = "&#8634; Repeat";
+  repeatBtn.disabled = true;
+
   const playBtn = document.createElement("button");
   playBtn.type = "button";
   playBtn.className = "ap-play-btn";
@@ -199,7 +231,13 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   stopBtn.innerHTML = "&#9632; Stop";
   stopBtn.disabled = true;
 
-  transport.append(playBtn, stopBtn);
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "ap-transport-btn ap-next-btn";
+  nextBtn.innerHTML = "Next &#9654;";
+  nextBtn.disabled = true;
+
+  transport.append(prevBtn, repeatBtn, playBtn, stopBtn, nextBtn);
   body.appendChild(transport);
 
   // Now-playing bar
@@ -208,39 +246,59 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   nowPlaying.style.display = "none";
   body.appendChild(nowPlaying);
 
-  // Build flat sentence list for lookup
-  const flatSentences: SentenceItem[] = [];
-  for (const g of groups) flatSentences.push(...g.sentences);
+  let controller: SequenceController | null = null;
 
-  let cancelFn: (() => void) | null = null;
-
-  function startPlaying() {
-    // Collect selected sentences
-    const selected: { text: string; display: string; index: number }[] = [];
+  function getSelectedSentences(): { text: string; display: string; ipa?: string; index: number }[] {
+    const selected: { text: string; display: string; ipa?: string; index: number }[] = [];
     for (let i = 0; i < allCheckboxes.length; i++) {
       if (allCheckboxes[i].checked) {
         selected.push({ ...flatSentences[i], index: i });
       }
     }
+    return selected;
+  }
+
+  function setTransportActive(active: boolean) {
+    prevBtn.disabled = !active;
+    repeatBtn.disabled = !active;
+    nextBtn.disabled = !active;
+    playBtn.disabled = active;
+    stopBtn.disabled = !active;
+  }
+
+  function startPlaying() {
+    startPlayingFrom(-1);
+  }
+
+  function startPlayingFrom(globalIndex: number) {
+    const selected = getSelectedSentences();
     if (selected.length === 0) return;
 
-    playBtn.disabled = true;
-    stopBtn.disabled = false;
+    // Find starting sequence index from global index
+    let startIndex = 0;
+    if (globalIndex >= 0) {
+      const seqIdx = selected.findIndex(s => s.index === globalIndex);
+      if (seqIdx >= 0) startIndex = seqIdx;
+    }
+
+    setTransportActive(true);
     nowPlaying.style.display = "";
 
-    cancelFn = speakSequence(
+    controller = speakSequence(
       selected.map(s => s.text),
       {
+        startIndex,
         onStart(seqIndex) {
           // Remove previous highlight
           allItems.forEach(item => item.classList.remove("ap-item-active"));
-          const globalIndex = selected[seqIndex].index;
-          allItems[globalIndex].classList.add("ap-item-active");
+          const gIdx = selected[seqIndex].index;
+          allItems[gIdx].classList.add("ap-item-active");
           // Scroll active item into view
-          allItems[globalIndex].scrollIntoView({ block: "nearest", behavior: "smooth" });
+          allItems[gIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
 
           const displayText = blindMode ? "..." : selected[seqIndex].display;
-          nowPlaying.textContent = `Now playing: ${displayText}  ${seqIndex + 1} / ${selected.length}`;
+          const ipaText = selected[seqIndex].ipa && !blindMode ? ` ${selected[seqIndex].ipa}` : "";
+          nowPlaying.textContent = `Now playing: ${displayText}${ipaText}  ${seqIndex + 1} / ${selected.length}`;
         },
         onDone() {
           resetTransport();
@@ -250,9 +308,8 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
   }
 
   function resetTransport() {
-    cancelFn = null;
-    playBtn.disabled = false;
-    stopBtn.disabled = true;
+    controller = null;
+    setTransportActive(false);
     nowPlaying.style.display = "none";
     nowPlaying.textContent = "";
     allItems.forEach(item => item.classList.remove("ap-item-active"));
@@ -260,9 +317,18 @@ export function buildAudioPanel(groups: SentenceGroup[]): HTMLDetailsElement {
 
   playBtn.addEventListener("click", startPlaying);
   stopBtn.addEventListener("click", () => {
-    if (cancelFn) cancelFn();
+    if (controller) controller.cancel();
     stopAll();
     resetTransport();
+  });
+  prevBtn.addEventListener("click", () => {
+    if (controller) controller.prev();
+  });
+  nextBtn.addEventListener("click", () => {
+    if (controller) controller.next();
+  });
+  repeatBtn.addEventListener("click", () => {
+    if (controller) controller.repeat();
   });
 
   return details;

@@ -1,6 +1,7 @@
 /**
  * Shared Dutch speech module — centralizes all Web Speech API logic.
- * Toggle stop/play, adjustable speed, sequential playback.
+ * Toggle stop/play, adjustable speed, sequential playback with
+ * transport controls (next/prev/repeat).
  */
 
 let activeBtn: HTMLElement | null = null;
@@ -89,56 +90,106 @@ export function speakDutch(text: string, btn?: HTMLElement): void {
   speechSynthesis.speak(utter);
 }
 
-/* ---- Sequential playback ---- */
+/* ---- Sequential playback with transport controls ---- */
 
 export interface SequenceOpts {
   pause?: number;
+  startIndex?: number;
   onStart?: (index: number) => void;
   onDone?: () => void;
 }
 
-export function speakSequence(texts: string[], opts?: SequenceOpts): () => void {
+export interface SequenceController {
+  cancel: () => void;
+  next: () => void;
+  prev: () => void;
+  repeat: () => void;
+  getCurrentIndex: () => number;
+}
+
+export function speakSequence(texts: string[], opts?: SequenceOpts): SequenceController {
+  const noop: SequenceController = {
+    cancel() {},
+    next() {},
+    prev() {},
+    repeat() {},
+    getCurrentIndex() { return 0; },
+  };
+
   if (typeof speechSynthesis === "undefined") {
     opts?.onDone?.();
-    return () => {};
+    return noop;
   }
 
   const pause = opts?.pause ?? 600;
   let cancelled = false;
-  let currentIndex = 0;
+  let currentIndex = opts?.startIndex ?? 0;
+  let generation = 0;
+  let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Cancel any current speech first
   stopAll();
   isSpeaking = true;
 
-  function speakNext() {
-    if (cancelled || currentIndex >= texts.length) {
+  function speakAt(index: number, gen: number) {
+    if (cancelled || index < 0 || index >= texts.length) {
       isSpeaking = false;
       opts?.onDone?.();
       return;
     }
 
+    currentIndex = index;
     opts?.onStart?.(currentIndex);
+
     const utter = new SpeechSynthesisUtterance(texts[currentIndex]);
     utter.lang = "nl-NL";
     utter.rate = getRate();
+
     utter.onend = () => {
-      currentIndex++;
-      if (!cancelled) setTimeout(speakNext, pause);
+      // Ignore if generation has changed (user used transport controls)
+      if (gen !== generation || cancelled) return;
+      const nextIdx = currentIndex + 1;
+      pendingTimeout = setTimeout(() => speakAt(nextIdx, gen), pause);
     };
     utter.onerror = () => {
-      currentIndex++;
-      if (!cancelled) setTimeout(speakNext, pause);
+      if (gen !== generation || cancelled) return;
+      const nextIdx = currentIndex + 1;
+      pendingTimeout = setTimeout(() => speakAt(nextIdx, gen), pause);
     };
+
     speechSynthesis.speak(utter);
   }
 
-  speakNext();
+  speakAt(currentIndex, generation);
 
-  return () => {
-    cancelled = true;
-    speechSynthesis.cancel();
-    isSpeaking = false;
-    opts?.onDone?.();
+  return {
+    cancel() {
+      cancelled = true;
+      generation++;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+      speechSynthesis.cancel();
+      isSpeaking = false;
+    },
+    next() {
+      generation++;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+      speechSynthesis.cancel();
+      speakAt(currentIndex + 1, generation);
+    },
+    prev() {
+      generation++;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+      speechSynthesis.cancel();
+      speakAt(Math.max(0, currentIndex - 1), generation);
+    },
+    repeat() {
+      generation++;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+      speechSynthesis.cancel();
+      speakAt(currentIndex, generation);
+    },
+    getCurrentIndex() {
+      return currentIndex;
+    },
   };
 }
