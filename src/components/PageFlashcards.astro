@@ -3,6 +3,7 @@
 // and renders a mini flashcard practice section. Includes difficulty ratings
 // (Again/Hard/Easy), session summary with word breakdown, and links to
 // the global flashcard app.
+// Redesigned: top anchor bar, fixed 220px card, ratings inside card.
 ---
 
 <page-flashcards id="page-flashcards"></page-flashcards>
@@ -94,7 +95,7 @@ class PageFlashcards extends HTMLElement {
     const init = () => {
       this.cards = extractCards();
       if (this.cards.length < 2) { this.style.display = "none"; return; }
-      this.renderButton();
+      this.renderAnchorAndWidget();
     };
     if ("requestIdleCallback" in window) requestIdleCallback(init);
     else requestAnimationFrame(() => setTimeout(init, 0));
@@ -178,31 +179,41 @@ class PageFlashcards extends HTMLElement {
     });
   }
 
-  renderButton() {
+  /* Render anchor bar at top + full widget below */
+  renderAnchorAndWidget() {
     this.unbindKeys();
     this.innerHTML = `
-      <div class="pf-section pf-frame">
-        <div class="pf-frame-header">
-          <span class="pf-frame-icon">&#9881;</span>
-          <span class="pf-frame-title">Practice Flashcards</span>
-          <span class="pf-frame-count">${this.cards.length} cards on this page</span>
+      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
+        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
+        <span class="pf-anchor-arrow">\u2193</span>
+      </a>
+      <div class="pf-widget" id="pf-widget">
+        <div class="pf-header-bar">
+          <span class="pf-header-title">Flashcards</span>
+          <span class="pf-header-count">${this.cards.length} cards</span>
         </div>
-        <div class="pf-start-row">
-          <div class="pf-dir-row">
-            <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
-            <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
-            <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
-            <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
-          </div>
-          <button class="pf-start-btn" id="pf-start" type="button">
-            Start Practice
-          </button>
-          <div class="pf-fc-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
+        <div class="pf-dir-row">
+          <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
+          <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
+          <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
+          <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
         </div>
+        <button class="pf-start" id="pf-start" type="button">Start Practice</button>
+        <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
       </div>`;
-    this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
-      b.addEventListener("click", () => { this.direction = b.dataset.d as Dir; this.renderButton(); });
+
+    // Smooth scroll anchor
+    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+
+    // Direction buttons
+    this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
+      b.addEventListener("click", () => { this.direction = b.dataset.d as Dir; this.renderAnchorAndWidget(); });
+    });
+
+    // Start
     this.querySelector("#pf-start")!.addEventListener("click", () => this.start());
   }
 
@@ -250,74 +261,92 @@ class PageFlashcards extends HTMLElement {
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
 
-    let cardContent: string;
+    /* Build card face content */
+    let faceHTML: string;
 
     if (isListen && !this.flipped) {
-      cardContent = `
+      faceHTML = `
         <div class="pf-badge">LISTEN</div>
-        <button class="dutch-audio-btn pf-audio pf-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
-        <div class="pf-listen-hint">?</div>`;
+        <button class="dutch-audio-btn pf-audio pf-audio-big" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
+        <div class="pf-listen-q">?</div>`;
     } else if (isListen && this.flipped) {
-      cardContent = `
+      faceHTML = `
         <div class="pf-badge">NL</div>
         <div class="pf-word">${this.esc(card.dutch)}</div>
         ${card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : ""}
         <button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
-        <div class="pf-reveal-divider"></div>
-        <div class="pf-badge pf-badge-answer">EN</div>
+        <div class="pf-divider"></div>
+        <div class="pf-badge pf-badge-ans">EN</div>
         <div class="pf-answer">${this.esc(card.english)}</div>`;
     } else {
       const frontWord = dutch ? card.dutch : card.english;
-      const frontSub = dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
+      const frontIPA = dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
       const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
       const fLabel = dutch ? "NL" : "EN";
 
       const backWord = dutch ? card.english : card.dutch;
-      const backSub = !dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
+      const backIPA = !dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
       const backAudio = !dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
       const bLabel = dutch ? "EN" : "NL";
 
-      cardContent = `
+      faceHTML = `
         <div class="pf-badge">${fLabel}</div>
         <div class="pf-word">${this.esc(frontWord)}</div>
-        ${frontSub}
+        ${frontIPA}
         ${frontAudio}
         ${this.flipped ? `
-          <div class="pf-reveal-divider"></div>
-          <div class="pf-badge pf-badge-answer">${bLabel}</div>
+          <div class="pf-divider"></div>
+          <div class="pf-badge pf-badge-ans">${bLabel}</div>
           <div class="pf-answer">${this.esc(backWord)}</div>
-          ${backSub}
+          ${backIPA}
           ${backAudio}
         ` : ""}`;
     }
 
+    /* Bottom zone: ratings inside card or hint */
+    let bottomHTML: string;
+    if (this.flipped) {
+      bottomHTML = `
+        <div class="pf-rate-row">
+          <button class="pf-rate pf-rate-again" data-ease="1" type="button">Again</button>
+          <button class="pf-rate pf-rate-hard" data-ease="2" type="button">Hard</button>
+          <button class="pf-rate pf-rate-easy" data-ease="3" type="button">Easy</button>
+        </div>`;
+    } else {
+      bottomHTML = `<div class="pf-hint">Tap to reveal</div>`;
+    }
+
+    /* Keep anchor at top */
     this.innerHTML = `
-      <div class="pf-section pf-frame">
-        <div class="pf-header">
-          <button class="pf-btn pf-btn-small pf-btn-secondary" id="pf-close" type="button">Close</button>
-          <span class="pf-counter">${num} / ${total}</span>
-          <button class="pf-btn pf-btn-small pf-btn-secondary" id="pf-reshuffle" type="button">Shuffle</button>
+      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
+        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
+        <span class="pf-anchor-arrow">\u2193</span>
+      </a>
+      <div class="pf-widget" id="pf-widget">
+        <div class="pf-toolbar">
+          <button class="pf-tbtn" id="pf-close" type="button">Close</button>
+          <span class="pf-count">${num}/${total}</span>
+          <button class="pf-tbtn" id="pf-reshuffle" type="button">Shuffle</button>
         </div>
-        <div class="pf-progress"><div class="pf-progress-fill" style="width:${pct}%"></div></div>
+        <div class="pf-pbar"><div class="pf-pfill" style="width:${pct}%"></div></div>
 
         <div class="pf-card-row">
-          <button class="pf-nav ${this.current === 0 ? "pf-nav-disabled" : ""}" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
+          <button class="pf-nav ${this.current === 0 ? "pf-nav-off" : ""}" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
           <div class="pf-card" id="pf-card">
-            ${cardContent}
+            <div class="pf-face">${faceHTML}</div>
+            <div class="pf-card-bottom">${bottomHTML}</div>
           </div>
           <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
         </div>
 
-        ${this.flipped ? `
-        <div class="pf-rating" aria-label="Rate difficulty">
-          <button class="pf-rate-btn pf-rate-again" data-ease="1" type="button">Again</button>
-          <button class="pf-rate-btn pf-rate-hard" data-ease="2" type="button">Hard</button>
-          <button class="pf-rate-btn pf-rate-easy" data-ease="3" type="button">Easy</button>
-        </div>` : `
-        <div class="pf-tap-hint">Tap card to reveal</div>`}
-
-        <div class="pf-key-hint">&larr; Prev &nbsp; Space / Enter &nbsp; Next &rarr; ${this.flipped ? "&nbsp; 1-2-3 Rate" : ""}</div>
+        <div class="pf-keys">&larr; Prev &nbsp; Space/Enter &nbsp; Next &rarr;${this.flipped ? " &nbsp; 1-2-3" : ""}</div>
       </div>`;
+
+    // Smooth scroll anchor
+    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
 
     this.querySelector("#pf-next")!.addEventListener("click", () => this.advance());
     this.querySelector("#pf-prev")!.addEventListener("click", () => {
@@ -325,14 +354,16 @@ class PageFlashcards extends HTMLElement {
     });
     this.querySelector("#pf-card")!.addEventListener("click", (e) => {
       if ((e.target as Element).closest(".dutch-audio-btn")) return;
+      if ((e.target as Element).closest(".pf-rate-row")) return;
       this.advance();
     });
-    this.querySelector("#pf-close")!.addEventListener("click", () => { this.unbindKeys(); this.renderButton(); });
+    this.querySelector("#pf-close")!.addEventListener("click", () => { this.unbindKeys(); this.renderAnchorAndWidget(); });
     this.querySelector("#pf-reshuffle")!.addEventListener("click", () => this.reshuffle());
 
     // Wire up rating buttons
-    this.querySelectorAll<HTMLButtonElement>(".pf-rate-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+    this.querySelectorAll<HTMLButtonElement>(".pf-rate").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const card = this.cards[this.order[this.current]];
         const ease = Number(btn.dataset.ease);
         this.rateToStorage(card, ease);
@@ -353,76 +384,77 @@ class PageFlashcards extends HTMLElement {
     this.unbindKeys();
     const total = this.order.length;
 
-    // Count session ratings
-    let easyCount = 0, hardCount = 0, againCount = 0, unratedCount = 0;
+    let easyCount = 0, hardCount = 0, againCount = 0;
     for (let i = 0; i < total; i++) {
       const rating = this.sessionRatings.get(i);
       if (rating === 3) easyCount++;
       else if (rating === 2) hardCount++;
       else if (rating === 1) againCount++;
-      else unratedCount++;
     }
 
-    // Collect hard/again cards for review
     const hardCards: number[] = [];
     for (let i = 0; i < total; i++) {
       const rating = this.sessionRatings.get(i);
       if (rating === 1 || rating === 2) hardCards.push(this.order[i]);
     }
 
-    // Build summary rows
     const summaryRows = this.order.map((idx, pos) => {
       const w = this.cards[idx];
       const rating = this.sessionRatings.get(pos);
-      let ratingLabel = "";
-      let ratingClass = "";
-      if (rating === 3) { ratingLabel = "Easy"; ratingClass = "pf-sum-easy"; }
-      else if (rating === 2) { ratingLabel = "Hard"; ratingClass = "pf-sum-hard"; }
-      else if (rating === 1) { ratingLabel = "Again"; ratingClass = "pf-sum-again"; }
-      else { ratingLabel = "\u2014"; ratingClass = "pf-sum-skip"; }
+      let ratingLabel = "", ratingClass = "";
+      if (rating === 3) { ratingLabel = "Easy"; ratingClass = "pf-sr-easy"; }
+      else if (rating === 2) { ratingLabel = "Hard"; ratingClass = "pf-sr-hard"; }
+      else if (rating === 1) { ratingLabel = "Again"; ratingClass = "pf-sr-again"; }
+      else { ratingLabel = "\u2014"; ratingClass = "pf-sr-skip"; }
       return `<tr class="${ratingClass}">
-        <td class="pf-sum-nl">${this.esc(w.dutch)}</td>
-        <td class="pf-sum-en">${this.esc(w.english)}</td>
-        <td class="pf-sum-rating">${ratingLabel}</td>
+        <td class="pf-sr-nl">${this.esc(w.dutch)}</td>
+        <td class="pf-sr-en">${this.esc(w.english)}</td>
+        <td class="pf-sr-rat">${ratingLabel}</td>
       </tr>`;
     }).join("");
 
     this.innerHTML = `
-      <div class="pf-section pf-frame">
-        <div class="pf-frame-header">
-          <span class="pf-frame-icon">&#10003;</span>
-          <span class="pf-frame-title">Practice Complete</span>
-        </div>
-        <div class="pf-summary">
-          <p class="pf-summary-text">You reviewed ${total} cards.</p>
-
-          <div class="pf-summary-stats">
-            <span class="pf-ss pf-ss-easy">${easyCount} easy</span>
-            <span class="pf-ss pf-ss-hard">${hardCount} hard</span>
-            <span class="pf-ss pf-ss-again">${againCount} again</span>
+      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
+        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
+        <span class="pf-anchor-arrow">\u2193</span>
+      </a>
+      <div class="pf-widget" id="pf-widget">
+        <div class="pf-sum">
+          <div class="pf-sum-top">
+            <span class="pf-sum-title">Done!</span>
+            <span class="pf-sum-sub">${total} cards reviewed</span>
           </div>
 
-          <div class="pf-actions">
-            ${hardCards.length > 0 ? `<button class="pf-btn pf-btn-primary" id="pf-review-hard" type="button">Review ${hardCards.length} Hard</button>` : ""}
-            <button class="pf-btn pf-btn-secondary" id="pf-restart" type="button">Restart</button>
-            <button class="pf-btn pf-btn-secondary" id="pf-close" type="button">Close</button>
+          <div class="pf-sum-badges">
+            <span class="pf-sb pf-sb-easy">${easyCount} easy</span>
+            <span class="pf-sb pf-sb-hard">${hardCount} hard</span>
+            <span class="pf-sb pf-sb-again">${againCount} again</span>
           </div>
 
-          <details class="pf-summary-details">
-            <summary class="pf-sum-toggle">All Words</summary>
-            <div class="pf-summary-table-wrap">
-              <table class="pf-summary-table">
-                <thead><tr><th>Dutch</th><th>English</th><th>Rating</th></tr></thead>
-                <tbody>${summaryRows}</tbody>
-              </table>
-            </div>
-          </details>
+          <div class="pf-sum-actions">
+            ${hardCards.length > 0 ? `<button class="pf-btn-pri" id="pf-review-hard" type="button">Review ${hardCards.length} Hard</button>` : ""}
+            <button class="pf-btn-sec" id="pf-restart" type="button">Restart</button>
+            <button class="pf-btn-sec" id="pf-close" type="button">Close</button>
+          </div>
 
-          <div class="pf-fc-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
+          <div class="pf-sum-table-wrap">
+            <table class="pf-sum-table">
+              <thead><tr><th>Dutch</th><th>English</th><th></th></tr></thead>
+              <tbody>${summaryRows}</tbody>
+            </table>
+          </div>
+
+          <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
         </div>
       </div>`;
 
-    this.querySelector("#pf-close")!.addEventListener("click", () => this.renderButton());
+    // Smooth scroll anchor
+    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    this.querySelector("#pf-close")!.addEventListener("click", () => this.renderAnchorAndWidget());
     this.querySelector("#pf-restart")!.addEventListener("click", () => this.start());
 
     const reviewBtn = this.querySelector("#pf-review-hard");
@@ -436,118 +468,234 @@ customElements.define("page-flashcards", PageFlashcards);
 </script>
 
 <style>
-  .pf-section { max-width: 540px; margin: 2rem auto 0; }
-
-  /* Frame container for clear visual separation */
-  .pf-frame {
-    border: 1px solid var(--sl-color-gray-5);
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    background: var(--sl-color-bg-nav);
-    box-shadow: var(--sl-shadow-sm);
-    margin-top: 2.5rem;
-  }
-  .pf-frame-header {
+  /* ========== Anchor bar (top of component, always visible) ========== */
+  .pf-anchor {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--sl-color-gray-5);
+    padding: 0.5rem 1rem;
+    margin: 1.5rem auto 0;
+    max-width: 540px;
+    border: 1px solid var(--sl-color-accent);
+    border-radius: 999rem;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
   }
-  .pf-frame-icon {
-    font-size: 1.1rem;
+  .pf-anchor:hover {
+    background-color: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    border-color: var(--sl-color-text-accent);
+  }
+  .pf-anchor:hover .pf-anchor-arrow { color: var(--sl-color-black); }
+  .pf-anchor-arrow {
+    font-size: 1rem;
     line-height: 1;
+    transition: transform 0.2s, color 0.15s;
+    color: var(--sl-color-text-accent);
   }
-  .pf-frame-title {
+  .pf-anchor:hover .pf-anchor-arrow { transform: translateY(2px); }
+
+  /* ========== Widget container ========== */
+  .pf-widget {
+    max-width: 540px;
+    margin: 1rem auto 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: var(--sl-color-bg-nav);
+    box-shadow: var(--sl-shadow-sm);
+  }
+
+  /* Header bar */
+  .pf-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .pf-header-title {
     font-size: var(--sl-text-base);
     font-weight: 700;
     color: var(--sl-color-white);
   }
-  .pf-frame-count {
-    font-size: var(--sl-text-xs);
+  .pf-header-count {
+    font-size: var(--sl-text-2xs);
     color: var(--sl-color-gray-3);
-    margin-left: auto;
   }
 
-  /* start area */
-  .pf-start-row { display: flex; flex-direction: column; gap: 0.6rem; }
-  .pf-dir-row { display: flex; gap: 0.35rem; justify-content: center; }
+  /* Direction pills */
+  .pf-dir-row { display: flex; gap: 0.3rem; justify-content: center; margin-bottom: 0.75rem; }
   .pf-dir {
-    padding: 0.3rem 0.7rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: all 0.15s;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
   }
   .pf-dir:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
   .pf-dir.pf-dir-on { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
 
-  .pf-start-btn {
-    display: block; width: 100%; padding: 0.75rem 1rem;
-    border: 1px solid var(--sl-color-text-accent); border-radius: 999rem;
-    background: none; color: var(--sl-color-text-accent);
-    font-size: var(--sl-text-sm); font-weight: 600; cursor: pointer;
+  /* Start button */
+  .pf-start {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--sl-color-text-accent);
+    border-radius: 999rem;
+    background: none;
+    color: var(--sl-color-text-accent);
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    cursor: pointer;
     transition: background-color 0.15s, color 0.15s;
   }
-  .pf-start-btn:hover { background: var(--sl-color-text-accent); color: var(--sl-color-black); }
+  .pf-start:hover { background: var(--sl-color-text-accent); color: var(--sl-color-black); }
 
-  /* toolbar */
-  .pf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-  .pf-counter { font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
-  .pf-progress { width: 100%; height: 4px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 1rem; overflow: hidden; }
-  .pf-progress-fill { height: 100%; border-radius: 2px; background: var(--sl-color-accent); transition: width 0.3s ease; }
-
-  /* card row with nav arrows */
-  .pf-card-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; }
-  .pf-nav {
-    flex-shrink: 0; width: 34px; height: 70px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; line-height: 1; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
-    background: none; color: var(--sl-color-gray-3); cursor: pointer; transition: all 0.15s; user-select: none;
+  /* ========== Card Practice ========== */
+  .pf-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem; }
+  .pf-tbtn {
+    padding: 0.2rem 0.55rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-2xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
   }
-  .pf-nav:hover:not(.pf-nav-disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); color: var(--sl-color-white); }
-  .pf-nav-disabled { opacity: 0.2; cursor: default; }
+  .pf-tbtn:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+  .pf-count { font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
 
-  /* card */
+  /* Progress bar */
+  .pf-pbar { width: 100%; height: 3px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 0.6rem; overflow: hidden; }
+  .pf-pfill { height: 100%; border-radius: 2px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+
+  /* Card row */
+  .pf-card-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem; }
+  .pf-nav {
+    flex-shrink: 0;
+    width: 30px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    line-height: 1;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pf-nav:hover:not(.pf-nav-off) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); color: var(--sl-color-white); }
+  .pf-nav-off { opacity: 0.2; cursor: default; }
+
+  /* THE CARD: fixed 220px height */
   .pf-card {
-    flex: 1; min-width: 0;
-    border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
-    padding: 1.75rem 1.25rem; min-height: 160px; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; background: var(--sl-color-black);
-    box-shadow: var(--sl-shadow-sm); transition: border-color 0.2s, background-color 0.2s;
+    flex: 1;
+    min-width: 0;
+    height: 220px;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+    box-shadow: var(--sl-shadow-sm);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s, background-color 0.2s;
   }
   .pf-card:hover { border-color: var(--sl-color-gray-2); background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); }
-  .pf-badge {
-    display: inline-block; font-size: var(--sl-text-2xs); font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; padding: 0.1rem 0.4rem; border-radius: 0.25rem;
-    background: var(--sl-color-gray-5); color: var(--sl-color-gray-2); margin-bottom: 0.4rem;
+
+  /* Face: fills space, content centered */
+  .pf-face {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    min-height: 0;
+    overflow-y: auto;
   }
-  .pf-badge-answer { background: var(--sl-color-accent-low); color: var(--sl-color-accent-high); }
-  .pf-word { font-size: 1.5rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.2rem; line-height: var(--sl-line-height-headings); }
-  .pf-ipa { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-bottom: 0.4rem; }
+
+  /* Bottom: rating or hint pinned to card bottom */
+  .pf-card-bottom {
+    flex-shrink: 0;
+    padding: 0 0.75rem 0.6rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Card elements */
+  .pf-badge {
+    display: inline-block;
+    font-size: var(--sl-text-2xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+    background: var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    margin-bottom: 0.25rem;
+  }
+  .pf-badge-ans { background: var(--sl-color-accent-low); color: var(--sl-color-accent-high); }
+  .pf-word { font-size: 1.4rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.1rem; line-height: var(--sl-line-height-headings); }
+  .pf-ipa { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-bottom: 0.25rem; }
+  .pf-divider { width: 40px; height: 1px; background: var(--sl-color-gray-5); margin: 0.4rem 0; }
+  .pf-answer { font-size: 1.15rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.1rem; }
+
+  /* Audio */
   .pf-audio {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 0.3rem; border: none; border-radius: 50%;
-    background: none; color: var(--sl-color-gray-3); cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
     transition: color 0.15s, background-color 0.15s, transform 0.15s;
   }
   .pf-audio:hover { color: var(--sl-color-text-accent); background-color: var(--sl-color-accent-low); transform: scale(1.1); }
-  .pf-reveal-divider { width: 50px; height: 1px; background: var(--sl-color-gray-5); margin: 0.7rem 0; }
-  .pf-answer { font-size: 1.2rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.15rem; }
+  .pf-audio-big { transform: scale(1.7); margin: 0.5rem 0; }
+  .pf-audio-big:hover { transform: scale(1.85); }
 
-  /* tap hint */
-  .pf-tap-hint { text-align: center; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-style: italic; margin-bottom: 0.25rem; }
+  /* Listen mode */
+  .pf-listen-q { font-size: 1.75rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.25rem; }
 
-  /* key hint */
-  .pf-key-hint { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
+  /* Hint */
+  .pf-hint { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-style: italic; }
+  .pf-keys { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-top: 0.15rem; }
 
-  /* rating buttons */
-  .pf-rating {
-    display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 0.25rem;
-  }
-  .pf-rate-btn {
-    padding: 0.35rem 1rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
-    cursor: pointer; border: 2px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: all 0.15s;
+  /* Rating buttons inside card */
+  .pf-rate-row { display: flex; gap: 0.35rem; }
+  .pf-rate {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
   }
   .pf-rate-again { border-color: #f87171; color: #f87171; }
   .pf-rate-again:hover { background: #f87171; color: var(--sl-color-black); }
@@ -556,88 +704,102 @@ customElements.define("page-flashcards", PageFlashcards);
   .pf-rate-easy { border-color: #4ade80; color: #4ade80; }
   .pf-rate-easy:hover { background: #4ade80; color: var(--sl-color-black); }
 
-  /* summary */
-  .pf-summary { text-align: center; }
-  .pf-summary-text { color: var(--sl-color-white); margin-bottom: 0.5rem; }
-  .pf-summary-stats { display: flex; gap: 0.75rem; justify-content: center; margin-bottom: 1rem; }
-  .pf-ss { font-size: var(--sl-text-xs); font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999rem; }
-  .pf-ss-easy { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
-  .pf-ss-hard { color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
-  .pf-ss-again { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+  /* ========== Summary ========== */
+  .pf-sum { text-align: center; }
+  .pf-sum-top { margin-bottom: 0.5rem; }
+  .pf-sum-title { font-size: var(--sl-text-base); font-weight: 700; color: var(--sl-color-white); }
+  .pf-sum-sub { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-left: 0.5rem; }
 
-  .pf-summary-details { text-align: left; margin-top: 0.75rem; margin-bottom: 0.5rem; }
-  .pf-sum-toggle {
-    cursor: pointer; font-size: var(--sl-text-xs); font-weight: 600; color: var(--sl-color-gray-3);
-    padding: 0.3rem 0; user-select: none;
+  .pf-sum-badges { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 0.6rem; }
+  .pf-sb { font-size: var(--sl-text-2xs); font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999rem; }
+  .pf-sb-easy { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  .pf-sb-hard { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+  .pf-sb-again { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+
+  .pf-sum-actions { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .pf-btn-pri {
+    padding: 0.35rem 1rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent);
+    background: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    transition: opacity 0.15s;
   }
-  .pf-sum-toggle:hover { color: var(--sl-color-white); }
-  .pf-summary-table-wrap {
-    max-height: 250px; overflow-y: auto; margin-top: 0.4rem;
-    border: 1px solid var(--sl-color-gray-5); border-radius: 0.4rem;
+  .pf-btn-pri:hover { opacity: 0.88; }
+  .pf-btn-sec {
+    padding: 0.35rem 1rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
   }
-  .pf-summary-table { width: 100%; border-collapse: collapse; font-size: var(--sl-text-xs); }
-  .pf-summary-table thead { position: sticky; top: 0; background: var(--sl-color-black); z-index: 1; }
-  .pf-summary-table th {
-    padding: 0.35rem 0.5rem; text-align: left; font-weight: 600;
-    border-bottom: 2px solid var(--sl-color-gray-5); color: var(--sl-color-gray-2);
+  .pf-btn-sec:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+
+  /* Summary word table */
+  .pf-sum-table-wrap {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    text-align: left;
+    margin-bottom: 0.5rem;
+  }
+  .pf-sum-table { width: 100%; border-collapse: collapse; font-size: var(--sl-text-2xs); }
+  .pf-sum-table thead { position: sticky; top: 0; background: var(--sl-color-black); z-index: 1; }
+  .pf-sum-table th {
+    padding: 0.25rem 0.4rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
     font-size: var(--sl-text-2xs);
   }
-  .pf-summary-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--sl-color-gray-6); }
-  .pf-sum-nl { color: var(--sl-color-white); font-weight: 600; }
-  .pf-sum-en { color: var(--sl-color-gray-2); }
-  .pf-sum-rating { font-weight: 700; font-size: var(--sl-text-2xs); text-align: center; width: 50px; }
-  .pf-sum-easy .pf-sum-rating { color: #4ade80; }
-  .pf-sum-hard .pf-sum-rating { color: #fbbf24; }
-  .pf-sum-again .pf-sum-rating { color: #f87171; }
-  .pf-sum-again { background-color: rgba(248, 113, 113, 0.08); }
-  .pf-sum-skip .pf-sum-rating { color: var(--sl-color-gray-3); }
+  .pf-sum-table td { padding: 0.2rem 0.4rem; border-bottom: 1px solid var(--sl-color-gray-6); }
+  .pf-sr-nl { color: var(--sl-color-white); font-weight: 600; }
+  .pf-sr-en { color: var(--sl-color-gray-2); }
+  .pf-sr-rat { font-weight: 700; font-size: var(--sl-text-2xs); text-align: center; width: 40px; }
+  .pf-sr-easy .pf-sr-rat { color: #4ade80; }
+  .pf-sr-hard .pf-sr-rat { color: #fbbf24; }
+  .pf-sr-again .pf-sr-rat { color: #f87171; }
+  .pf-sr-again { background-color: rgba(248, 113, 113, 0.08); }
+  .pf-sr-skip .pf-sr-rat { color: var(--sl-color-gray-3); }
 
-  /* done */
-  .pf-done { text-align: center; }
-  .pf-done p { color: var(--sl-color-white); margin-bottom: 1rem; }
-  .pf-actions { display: flex; gap: 0.5rem; justify-content: center; }
-  .pf-btn {
-    padding: 0.45rem 1.2rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: background-color 0.15s, opacity 0.15s;
-  }
-  .pf-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .pf-btn-primary { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
-  .pf-btn-primary:hover:not(:disabled) { opacity: 0.88; }
-  .pf-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
-  .pf-btn-small { padding: 0.25rem 0.7rem; font-size: var(--sl-text-2xs); }
+  /* Link */
+  .pf-link { text-align: center; margin-top: 0.5rem; }
+  .pf-link a { font-size: var(--sl-text-xs); color: var(--sl-color-text-accent); text-decoration: none; font-weight: 600; }
+  .pf-link a:hover { text-decoration: underline; }
 
-  /* listen mode */
-  .pf-listen-btn { transform: scale(1.8); margin: 0.75rem 0; }
-  .pf-listen-hint { font-size: 2rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.5rem; }
-
-  /* flashcard link */
-  .pf-fc-link { text-align: center; margin-top: 0.5rem; }
-  .pf-fc-link a {
-    font-size: var(--sl-text-xs); color: var(--sl-color-text-accent); text-decoration: none; font-weight: 600;
-  }
-  .pf-fc-link a:hover { text-decoration: underline; }
-
-  /* focus styles */
-  .pf-rate-btn:focus-visible, .pf-btn:focus-visible, .pf-nav:focus-visible, .pf-dir:focus-visible {
+  /* Focus styles */
+  .pf-rate:focus-visible, .pf-tbtn:focus-visible, .pf-nav:focus-visible,
+  .pf-dir:focus-visible, .pf-start:focus-visible, .pf-audio:focus-visible,
+  .pf-btn-pri:focus-visible, .pf-btn-sec:focus-visible, .pf-anchor:focus-visible {
     outline: 2px solid var(--sl-color-text-accent);
     outline-offset: 2px;
   }
 
-  /* Mobile responsiveness */
+  /* ========== Mobile ========== */
   @media (max-width: 480px) {
-    .pf-word { font-size: 1.25rem; }
-    .pf-answer { font-size: 1.05rem; }
-    .pf-card { padding: 1.25rem 0.75rem; min-height: 140px; }
-    .pf-nav { width: 30px; height: 60px; }
-    .pf-key-hint { display: none; }
+    .pf-word { font-size: 1.15rem; }
+    .pf-answer { font-size: 1rem; }
+    .pf-card { height: 200px; }
+    .pf-nav { width: 26px; height: 50px; }
+    .pf-keys { display: none; }
   }
   @media (pointer: coarse) {
     .pf-nav { min-width: 44px; min-height: 44px; }
-    .pf-btn { min-height: 44px; }
-    .pf-dir { min-height: 40px; padding: 0.5rem 0.8rem; }
-    .pf-start-btn { min-height: 48px; }
+    .pf-dir { min-height: 40px; padding: 0.4rem 0.7rem; }
+    .pf-start { min-height: 48px; }
     .pf-audio { min-width: 44px; min-height: 44px; padding: 8px; }
-    .pf-rate-btn { min-height: 44px; padding: 0.5rem 1rem; }
+    .pf-rate { min-height: 44px; padding: 0.4rem 0.75rem; }
+    .pf-tbtn { min-height: 36px; }
+    .pf-btn-pri, .pf-btn-sec { min-height: 44px; }
+    .pf-anchor { min-height: 44px; }
   }
 </style>

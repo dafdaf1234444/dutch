@@ -3,6 +3,7 @@
 // Five modes (Dutch->English, English->Dutch, Mixed, Listen, Dictation),
 // spaced repetition, session tracking with end-of-session summary,
 // review hard words, keyboard shortcuts, favorites, reshuffling.
+// Redesigned: compact checkbox topic list, fixed 280px card, ratings inside card.
 ---
 
 <flashcard-app id="flashcard-app"></flashcard-app>
@@ -210,8 +211,8 @@ class FlashcardApp extends HTMLElement {
     );
 
     const dirLabels: Record<Direction, string> = {
-      "nl-en": "Dutch \u2192 English",
-      "en-nl": "English \u2192 Dutch",
+      "nl-en": "NL\u2192EN",
+      "en-nl": "EN\u2192NL",
       "mixed": "Mixed",
       "listen": "Listen",
       "dictation": "Dictation",
@@ -223,81 +224,89 @@ class FlashcardApp extends HTMLElement {
       ? `${totalReviews} reviews${streak > 1 ? ` \u00b7 ${streak}-day streak` : ""}`
       : "";
 
+    const allSelected = this.selectedTopics.size === TOPICS.length;
+
     this.innerHTML = `
-      <div class="fc-container">
-        <div class="fc-grid-header">
-          <h2 class="fc-heading">Flashcards</h2>
-          ${statsLine ? `<span class="fc-stats-badge">${statsLine}</span>` : ""}
-        </div>
-        <p class="fc-subheading">Select topics, pick a mode, then start practicing.</p>
-
-        <div class="fc-topic-grid">
-          ${TOPICS.map((t, i) => {
-            const m = this.getTopicMastery(i);
-            const masteryPct = m.total > 0 ? Math.round(((m.easy + m.hard) / m.total) * 100) : 0;
-            const sel = this.selectedTopics.has(i);
-            return `
-            <button class="fc-topic-card ${sel ? "fc-topic-selected" : ""}"
-                    data-index="${i}" type="button">
-              <span class="fc-topic-check">${sel ? "&#10003;" : ""}</span>
-              <span class="fc-topic-name">${t.name}</span>
-              <span class="fc-topic-meta">
-                <span class="fc-topic-count">${t.words.length} words</span>
-                ${masteryPct > 0 ? `<span class="fc-topic-mastery" title="${m.easy} easy, ${m.hard} hard, ${m.again} again, ${m.unseen} unseen">${masteryPct}%</span>` : ""}
-              </span>
-              ${masteryPct > 0 ? `<div class="fc-mastery-bar"><div class="fc-mastery-easy" style="width:${Math.round((m.easy / m.total) * 100)}%"></div><div class="fc-mastery-hard" style="width:${Math.round((m.hard / m.total) * 100)}%"></div><div class="fc-mastery-again" style="width:${Math.round((m.again / m.total) * 100)}%"></div></div>` : ""}
-            </button>`;
-          }).join("")}
+      <div class="fc-wrap">
+        <div class="fc-top-row">
+          <h2 class="fc-title">Flashcards</h2>
+          ${statsLine ? `<span class="fc-stats-pill">${statsLine}</span>` : ""}
         </div>
 
-        <div class="fc-direction">
+        <div class="fc-dir-bar">
           ${(["nl-en", "en-nl", "mixed", "listen", "dictation"] as Direction[]).map(d => `
-            <button class="fc-dir-btn ${this.direction === d ? "fc-dir-active" : ""}"
+            <button class="fc-dir ${this.direction === d ? "fc-dir-on" : ""}"
                     data-dir="${d}" type="button">${dirLabels[d]}</button>
           `).join("")}
         </div>
 
-        <div class="fc-actions">
-          <button class="fc-btn fc-btn-secondary" id="fc-select-all" type="button">
-            ${this.selectedTopics.size === TOPICS.length ? "Deselect All" : "Select All"}
-          </button>
-          ${favCount > 0 ? `<button class="fc-btn fc-btn-secondary ${this.showFavoritesOnly ? "fc-fav-active" : ""}" id="fc-fav-filter" type="button">&#9829; Favorites (${favCount})</button>` : ""}
-          <button class="fc-btn fc-btn-primary" id="fc-start" type="button"
-                  ${totalSelected === 0 ? "disabled" : ""}>
-            Start (${totalSelected} cards)
+        <div class="fc-topic-box">
+          <label class="fc-topic-row fc-topic-all">
+            <input type="checkbox" class="fc-check" id="fc-select-all" ${allSelected ? "checked" : ""} />
+            <span class="fc-topic-name">Select All</span>
+            <span class="fc-topic-count">${TOPICS.reduce((s, t) => s + t.words.length, 0)}</span>
+          </label>
+          <div class="fc-topic-divider"></div>
+          <div class="fc-topic-scroll">
+            ${TOPICS.map((t, i) => {
+              const m = this.getTopicMastery(i);
+              const masteryPct = m.total > 0 ? Math.round(((m.easy + m.hard) / m.total) * 100) : 0;
+              const sel = this.selectedTopics.has(i);
+              return `
+              <label class="fc-topic-row ${sel ? "fc-topic-sel" : ""}" data-index="${i}">
+                <input type="checkbox" class="fc-check fc-topic-check" data-index="${i}" ${sel ? "checked" : ""} />
+                <span class="fc-topic-name">${t.name}</span>
+                <span class="fc-topic-count">${t.words.length}</span>
+                ${masteryPct > 0 ? `<span class="fc-topic-pct" title="${m.easy} easy, ${m.hard} hard, ${m.again} again, ${m.unseen} unseen">${masteryPct}%</span>` : `<span class="fc-topic-pct"></span>`}
+                ${masteryPct > 0 ? `<div class="fc-mastery-bar"><div class="fc-mastery-fill fc-mastery-easy" style="width:${Math.round((m.easy / m.total) * 100)}%"></div><div class="fc-mastery-fill fc-mastery-hard" style="width:${Math.round((m.hard / m.total) * 100)}%"></div><div class="fc-mastery-fill fc-mastery-again" style="width:${Math.round((m.again / m.total) * 100)}%"></div></div>` : ""}
+              </label>`;
+            }).join("")}
+          </div>
+        </div>
+
+        <div class="fc-bottom-bar">
+          ${favCount > 0 ? `<button class="fc-fav-filter ${this.showFavoritesOnly ? "fc-fav-filter-on" : ""}" id="fc-fav-filter" type="button">&#9829; ${favCount}</button>` : ""}
+          <button class="fc-start" id="fc-start" type="button" ${totalSelected === 0 ? "disabled" : ""}>
+            Start${totalSelected > 0 ? ` (${totalSelected})` : ""}
           </button>
         </div>
       </div>`;
 
-    this.querySelectorAll<HTMLButtonElement>(".fc-topic-card").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = Number(btn.dataset.index);
-        this.selectedTopics.has(idx) ? this.selectedTopics.delete(idx) : this.selectedTopics.add(idx);
+    // Wire topic checkboxes
+    this.querySelectorAll<HTMLInputElement>(".fc-topic-check").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const idx = Number(cb.dataset.index);
+        if (cb.checked) this.selectedTopics.add(idx);
+        else this.selectedTopics.delete(idx);
         this.renderTopicGrid();
       });
     });
 
-    this.querySelectorAll<HTMLButtonElement>(".fc-dir-btn").forEach((btn) => {
+    // Wire Select All
+    this.querySelector("#fc-select-all")!.addEventListener("change", () => {
+      if (allSelected) this.selectedTopics.clear();
+      else TOPICS.forEach((_, i) => this.selectedTopics.add(i));
+      this.renderTopicGrid();
+    });
+
+    // Direction buttons
+    this.querySelectorAll<HTMLButtonElement>(".fc-dir").forEach(btn => {
       btn.addEventListener("click", () => {
         this.direction = btn.dataset.dir as Direction;
         this.renderTopicGrid();
       });
     });
 
-    this.querySelector("#fc-select-all")!.addEventListener("click", () => {
-      if (this.selectedTopics.size === TOPICS.length) this.selectedTopics.clear();
-      else TOPICS.forEach((_, i) => this.selectedTopics.add(i));
-      this.renderTopicGrid();
-    });
-
-    const favFilterBtn = this.querySelector("#fc-fav-filter");
-    if (favFilterBtn) {
-      favFilterBtn.addEventListener("click", () => {
+    // Favorites filter
+    const favBtn = this.querySelector("#fc-fav-filter");
+    if (favBtn) {
+      favBtn.addEventListener("click", () => {
         this.showFavoritesOnly = !this.showFavoritesOnly;
         this.renderTopicGrid();
       });
     }
 
+    // Start
     this.querySelector("#fc-start")!.addEventListener("click", () => {
       if (totalSelected > 0) this.startPractice();
     });
@@ -317,9 +326,7 @@ class FlashcardApp extends HTMLElement {
     indices.sort((a, b) => {
       const pa = this.getProgress(this.cards[a]);
       const pb = this.getProgress(this.cards[b]);
-      // Unseen (ease=0) first, then again (1), hard (2), easy (3)
       if (pa.ease !== pb.ease) return pa.ease - pb.ease;
-      // Within same ease, older reviews first
       return pa.lastSeen - pb.lastSeen;
     });
     this.order = indices;
@@ -339,7 +346,6 @@ class FlashcardApp extends HTMLElement {
   }
 
   startPracticeWithCards(cardIndices: number[]) {
-    // Start practice with specific card indices (for "Review Hard Words")
     this.order = this.shuffle([...cardIndices]);
     this.showDutchFirst = this.order.map(() => {
       if (this.direction === "nl-en" || this.direction === "listen" || this.direction === "dictation") return true;
@@ -364,7 +370,6 @@ class FlashcardApp extends HTMLElement {
     });
     this.current = 0;
     this.flipped = false;
-    // Preserve correctCount and totalAnswered so reshuffle doesn't erase progress
     this.renderCard();
   }
 
@@ -377,7 +382,7 @@ class FlashcardApp extends HTMLElement {
 
   submitDictation() {
     if (this.flipped) return;
-    const input = this.querySelector<HTMLInputElement>(".fc-dictation-input");
+    const input = this.querySelector<HTMLInputElement>(".fc-dict-input");
     if (!input) return;
     const userAnswer = input.value;
     const card = this.cards[this.order[this.current]];
@@ -385,10 +390,10 @@ class FlashcardApp extends HTMLElement {
     this.totalAnswered++;
     if (isCorrect) {
       this.correctCount++;
-      this.sessionRatings.set(this.current, 3); // auto-rate correct as easy
+      this.sessionRatings.set(this.current, 3);
       this.rateCard(card, 3);
     } else {
-      this.sessionRatings.set(this.current, 1); // auto-rate incorrect as again
+      this.sessionRatings.set(this.current, 1);
       this.rateCard(card, 1);
     }
     this.flipped = true;
@@ -409,128 +414,126 @@ class FlashcardApp extends HTMLElement {
     const isDictation = this.direction === "dictation";
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
+    const fav = this.isFavorite(card);
 
-    let cardInner: string;
+    /* Build the card face content (top section of the fixed card) */
+    let faceHTML: string;
 
     if (isDictation && !this.flipped) {
-      cardInner = `
-        <div class="fc-card-inner">
-          <div class="fc-lang-badge">DICTATION</div>
-          <button class="dutch-audio-btn fc-audio-btn fc-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
-          <div class="fc-dictation-form">
-            <label for="fc-dictation-field" class="sr-only">Type what you hear</label>
-            <input type="text" id="fc-dictation-field" class="fc-dictation-input" placeholder="Type what you hear..." autocomplete="off" autocapitalize="off" spellcheck="false" />
-            <button class="fc-btn fc-btn-primary fc-dictation-check" type="button">Check</button>
-          </div>
+      faceHTML = `
+        <div class="fc-badge">DICTATION</div>
+        <button class="dutch-audio-btn fc-audio fc-audio-big" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+        <div class="fc-dict-form">
+          <label for="fc-dict-field" class="sr-only">Type what you hear</label>
+          <input type="text" id="fc-dict-field" class="fc-dict-input" placeholder="Type what you hear..." autocomplete="off" autocapitalize="off" spellcheck="false" />
+          <button class="fc-dict-check" type="button">Check</button>
         </div>`;
     } else if (isDictation && this.flipped) {
       const userAnswer = dictationAnswer ?? "";
       const isCorrect = this.checkAnswer(userAnswer, card.dutch);
-      cardInner = `
-        <div class="fc-card-inner">
-          <div class="fc-dictation-result ${isCorrect ? "fc-dictation-correct" : "fc-dictation-wrong"}">
-            <div class="fc-dictation-status">${isCorrect ? "&#10003; Correct!" : "&#10007; Incorrect"}</div>
-            ${!isCorrect ? `<div class="fc-dictation-your">Your answer: <span class="fc-dictation-diff">${this.esc(userAnswer) || "(empty)"}</span></div>` : ""}
-            <div class="fc-dictation-answer">
-              <span>${this.esc(card.dutch)}</span>
-              <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
-            </div>
-            ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
-            <div class="fc-divider"></div>
-            <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
-            <div class="fc-answer">${this.esc(card.english)}</div>
-          </div>
-        </div>`;
+      faceHTML = `
+        <div class="fc-dict-result ${isCorrect ? "fc-dict-ok" : "fc-dict-no"}">
+          <span class="fc-dict-status">${isCorrect ? "\u2713 Correct" : "\u2717 Incorrect"}</span>
+          ${!isCorrect ? `<span class="fc-dict-yours">${this.esc(userAnswer) || "(empty)"}</span>` : ""}
+        </div>
+        <div class="fc-word-sm">${this.esc(card.dutch)}
+          <button class="dutch-audio-btn fc-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+        </div>
+        ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
+        <div class="fc-divider"></div>
+        <div class="fc-answer">${this.esc(card.english)}</div>`;
     } else if (isListen && !this.flipped) {
-      cardInner = `
-        <div class="fc-card-inner">
-          <div class="fc-lang-badge">LISTEN</div>
-          <button class="dutch-audio-btn fc-audio-btn fc-listen-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
-          <div class="fc-listen-hint">?</div>
-        </div>`;
+      faceHTML = `
+        <div class="fc-badge">LISTEN</div>
+        <button class="dutch-audio-btn fc-audio fc-audio-big" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+        <div class="fc-listen-q">?</div>`;
     } else if (isListen && this.flipped) {
-      cardInner = `
-        <div class="fc-card-inner">
-          <div class="fc-lang-badge">NL</div>
-          <div class="fc-word">${this.esc(card.dutch)}</div>
-          ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
-          <button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
-          <div class="fc-divider"></div>
-          <div class="fc-lang-badge fc-lang-badge-answer">EN</div>
-          <div class="fc-answer">${this.esc(card.english)}</div>
-        </div>`;
+      faceHTML = `
+        <div class="fc-badge">NL</div>
+        <div class="fc-word">${this.esc(card.dutch)}</div>
+        ${card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : ""}
+        <button class="dutch-audio-btn fc-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>
+        <div class="fc-divider"></div>
+        <div class="fc-badge fc-badge-ans">EN</div>
+        <div class="fc-answer">${this.esc(card.english)}</div>`;
     } else {
-      // Normal modes
+      /* Normal NL-EN / EN-NL / Mixed */
       const frontWord = dutch ? card.dutch : card.english;
-      const frontSub = dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
-      const frontAudio = dutch
-        ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
-        : "";
-      const frontLabel = dutch ? "NL" : "EN";
+      const frontIPA = dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
+      const frontAudio = dutch ? `<button class="dutch-audio-btn fc-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>` : "";
+      const fLabel = dutch ? "NL" : "EN";
 
       const backWord = dutch ? card.english : card.dutch;
-      const backSub = !dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
-      const backAudio = !dutch
-        ? `<button class="dutch-audio-btn fc-audio-btn" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>`
-        : "";
-      const backLabel = dutch ? "EN" : "NL";
+      const backIPA = !dutch && card.ipa ? `<div class="fc-ipa">${this.esc(card.ipa)}</div>` : "";
+      const backAudio = !dutch ? `<button class="dutch-audio-btn fc-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${FlashcardApp.SVG}</button>` : "";
+      const bLabel = dutch ? "EN" : "NL";
 
-      cardInner = `
-        <div class="fc-card-inner">
-          <div class="fc-lang-badge">${frontLabel}</div>
-          <div class="fc-word">${this.esc(frontWord)}</div>
-          ${frontSub}
-          ${frontAudio}
-          ${this.flipped ? `
-            <div class="fc-divider"></div>
-            <div class="fc-lang-badge fc-lang-badge-answer">${backLabel}</div>
-            <div class="fc-answer">${this.esc(backWord)}</div>
-            ${backSub}
-            ${backAudio}
-          ` : ""}
-        </div>`;
+      faceHTML = `
+        <div class="fc-badge">${fLabel}</div>
+        <div class="fc-word">${this.esc(frontWord)}</div>
+        ${frontIPA}
+        ${frontAudio}
+        ${this.flipped ? `
+          <div class="fc-divider"></div>
+          <div class="fc-badge fc-badge-ans">${bLabel}</div>
+          <div class="fc-answer">${this.esc(backWord)}</div>
+          ${backIPA}
+          ${backAudio}
+        ` : ""}`;
     }
 
-    const fav = this.isFavorite(card);
+    /* Bottom zone: rating buttons (when flipped) or hint (when not) */
+    let bottomHTML: string;
+    if (isDictation && this.flipped) {
+      /* Dictation result already shown; just Next button */
+      bottomHTML = `<button class="fc-next-btn" id="fc-advance" type="button">Next</button>`;
+    } else if (this.flipped) {
+      bottomHTML = `
+        <div class="fc-rate-row">
+          <button class="fc-rate fc-rate-again" data-ease="1" type="button"><span class="fc-rate-key">1</span> Again</button>
+          <button class="fc-rate fc-rate-hard" data-ease="2" type="button"><span class="fc-rate-key">2</span> Hard</button>
+          <button class="fc-rate fc-rate-easy" data-ease="3" type="button"><span class="fc-rate-key">3</span> Easy</button>
+        </div>`;
+    } else if (isDictation) {
+      bottomHTML = "";
+    } else {
+      bottomHTML = `<div class="fc-hint">Tap card or press Space</div>`;
+    }
 
     this.innerHTML = `
-      <div class="fc-container">
+      <div class="fc-wrap">
         <div class="fc-toolbar">
-          <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-back" type="button">Back</button>
-          <span class="fc-counter">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score" aria-live="polite">${this.correctCount}/${this.totalAnswered}</span> \u00b7 ` : ""}${num} / ${total}</span>
-          <div class="fc-toolbar-right">
-            <button class="fc-fav-btn ${fav ? "fc-fav-on" : ""}" id="fc-fav" type="button" title="${fav ? "Remove from favorites" : "Add to favorites"}" aria-label="${fav ? "Remove from favorites" : "Add to favorites"}">${FlashcardApp.HEART}</button>
-            <button class="fc-btn fc-btn-small fc-btn-secondary" id="fc-reshuffle" type="button" title="Reshuffle cards">Shuffle</button>
+          <button class="fc-tbtn" id="fc-back" type="button">Back</button>
+          <span class="fc-count">${isDictation && this.totalAnswered > 0 ? `<span class="fc-score">${this.correctCount}/${this.totalAnswered}</span> \u00b7 ` : ""}${num}/${total}</span>
+          <div class="fc-toolbar-r">
+            <button class="fc-fav-btn ${fav ? "fc-fav-on" : ""}" id="fc-fav" type="button" title="${fav ? "Remove favorite" : "Add favorite"}" aria-label="${fav ? "Remove from favorites" : "Add to favorites"}">${FlashcardApp.HEART}</button>
+            <button class="fc-tbtn" id="fc-reshuffle" type="button">Shuffle</button>
           </div>
         </div>
-        <div class="fc-progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="fc-progress-fill" style="width:${pct}%"></div></div>
+        <div class="fc-pbar"><div class="fc-pfill" style="width:${pct}%"></div></div>
 
         <div class="fc-card-row">
-          <button class="fc-nav fc-nav-prev ${this.current === 0 ? "fc-nav-disabled" : ""}" id="fc-prev" type="button" title="Previous card" aria-label="Previous card">&#8249;</button>
+          <button class="fc-nav ${this.current === 0 ? "fc-nav-off" : ""}" id="fc-prev" type="button" aria-label="Previous">&#8249;</button>
           <div class="fc-card" id="fc-card">
-            ${cardInner}
+            <div class="fc-face">${faceHTML}</div>
+            <div class="fc-bottom">${bottomHTML}</div>
           </div>
-          <button class="fc-nav fc-nav-next" id="fc-next" type="button" title="${this.flipped ? "Next card" : "Show Answer"}" aria-label="Next">&#8250;</button>
+          <button class="fc-nav" id="fc-next" type="button" aria-label="Next">&#8250;</button>
         </div>
 
-        ${this.flipped ? `
-        <div class="fc-rating" aria-label="Rate difficulty">
-          <button class="fc-rate-btn fc-rate-again" data-ease="1" type="button"><span class="fc-rate-key">1</span> Again</button>
-          <button class="fc-rate-btn fc-rate-hard" data-ease="2" type="button"><span class="fc-rate-key">2</span> Hard</button>
-          <button class="fc-rate-btn fc-rate-easy" data-ease="3" type="button"><span class="fc-rate-key">3</span> Easy</button>
-        </div>` : `
-        <div class="fc-tap-hint">Tap card or press Space to reveal</div>`}
-
-        <div class="fc-shortcut-hint">&larr; Prev &nbsp; Space / Enter &nbsp; Next &rarr; &nbsp; ${this.flipped ? "1-2-3 Rate" : ""}</div>
+        <div class="fc-keys">&larr; Prev &nbsp; Space/Enter &nbsp; Next &rarr;${this.flipped ? " &nbsp; 1-2-3 Rate" : ""}</div>
       </div>`;
 
+    /* Event wiring */
     this.querySelector("#fc-next")!.addEventListener("click", () => this.advance());
     this.querySelector("#fc-prev")!.addEventListener("click", () => {
       if (this.current > 0) { this.current--; this.flipped = false; this.renderCard(); }
     });
     this.querySelector("#fc-card")!.addEventListener("click", (e) => {
       if ((e.target as Element).closest(".dutch-audio-btn")) return;
-      if ((e.target as Element).closest(".fc-dictation-form")) return;
+      if ((e.target as Element).closest(".fc-dict-form")) return;
+      if ((e.target as Element).closest(".fc-rate-row")) return;
+      if ((e.target as Element).closest(".fc-next-btn")) return;
       if (isDictation && !this.flipped) return;
       this.advance();
     });
@@ -540,8 +543,11 @@ class FlashcardApp extends HTMLElement {
       this.toggleFavorite(card);
       this.renderCard();
     });
-    this.querySelectorAll<HTMLButtonElement>(".fc-rate-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+
+    // Rating buttons
+    this.querySelectorAll<HTMLButtonElement>(".fc-rate").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const ease = Number(btn.dataset.ease);
         this.rateCard(card, ease);
         this.sessionRatings.set(this.current, ease);
@@ -551,11 +557,22 @@ class FlashcardApp extends HTMLElement {
       });
     });
 
+    // Dictation advance button
+    const advBtn = this.querySelector("#fc-advance");
+    if (advBtn) {
+      advBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.current++;
+        this.flipped = false;
+        this.renderCard();
+      });
+    }
+
     // Dictation mode: wire up check button and Enter key on input
     if (isDictation && !this.flipped) {
-      const checkBtn = this.querySelector(".fc-dictation-check");
+      const checkBtn = this.querySelector(".fc-dict-check");
       if (checkBtn) checkBtn.addEventListener("click", () => this.submitDictation());
-      const input = this.querySelector<HTMLInputElement>(".fc-dictation-input");
+      const input = this.querySelector<HTMLInputElement>(".fc-dict-input");
       if (input) {
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") { e.preventDefault(); this.submitDictation(); }
@@ -575,7 +592,6 @@ class FlashcardApp extends HTMLElement {
     const total = this.order.length;
     const isDictation = this.direction === "dictation";
 
-    // Count session ratings
     let easyCount = 0, hardCount = 0, againCount = 0, unratedCount = 0;
     for (let i = 0; i < total; i++) {
       const rating = this.sessionRatings.get(i);
@@ -585,67 +601,58 @@ class FlashcardApp extends HTMLElement {
       else unratedCount++;
     }
 
-    // Collect hard/again cards for review
     const hardCards: number[] = [];
     for (let i = 0; i < total; i++) {
       const rating = this.sessionRatings.get(i);
-      if (rating === 1 || rating === 2) {
-        hardCards.push(this.order[i]);
-      }
+      if (rating === 1 || rating === 2) hardCards.push(this.order[i]);
     }
 
     const { totalReviews, streak } = this.storage.stats;
     const scorePct = isDictation && this.totalAnswered > 0 ? Math.round((this.correctCount / this.totalAnswered) * 100) : 0;
 
-    // Build summary word list
     const summaryRows = this.order.map((idx, pos) => {
       const w = this.cards[idx];
       const rating = this.sessionRatings.get(pos);
-      let ratingLabel = "";
-      let ratingClass = "";
-      if (rating === 3) { ratingLabel = "Easy"; ratingClass = "fc-sum-easy"; }
-      else if (rating === 2) { ratingLabel = "Hard"; ratingClass = "fc-sum-hard"; }
-      else if (rating === 1) { ratingLabel = "Again"; ratingClass = "fc-sum-again"; }
-      else { ratingLabel = "\u2014"; ratingClass = "fc-sum-skip"; }
+      let ratingLabel = "", ratingClass = "";
+      if (rating === 3) { ratingLabel = "Easy"; ratingClass = "fc-sr-easy"; }
+      else if (rating === 2) { ratingLabel = "Hard"; ratingClass = "fc-sr-hard"; }
+      else if (rating === 1) { ratingLabel = "Again"; ratingClass = "fc-sr-again"; }
+      else { ratingLabel = "\u2014"; ratingClass = "fc-sr-skip"; }
       return `<tr class="${ratingClass}">
-        <td class="fc-sum-nl">${this.esc(w.dutch)}</td>
-        <td class="fc-sum-en">${this.esc(w.english)}</td>
-        <td class="fc-sum-rating">${ratingLabel}</td>
+        <td class="fc-sr-nl">${this.esc(w.dutch)}</td>
+        <td class="fc-sr-en">${this.esc(w.english)}</td>
+        <td class="fc-sr-rat">${ratingLabel}</td>
       </tr>`;
     }).join("");
 
     this.innerHTML = `
-      <div class="fc-container">
-        <div class="fc-summary">
-          <h2 class="fc-heading">Session Complete</h2>
-          <p class="fc-subheading">You reviewed ${total} cards.</p>
+      <div class="fc-wrap">
+        <div class="fc-sum">
+          <h2 class="fc-sum-title">Session Complete</h2>
 
-          ${isDictation ? `<div class="fc-score-final">${this.correctCount} / ${this.totalAnswered} correct (${scorePct}%)</div>` : ""}
+          ${isDictation ? `<div class="fc-sum-score">${this.correctCount}/${this.totalAnswered} correct (${scorePct}%)</div>` : ""}
 
-          <div class="fc-summary-stats">
-            <div class="fc-stat fc-stat-easy"><span class="fc-stat-num">${easyCount}</span><span class="fc-stat-label">Easy</span></div>
-            <div class="fc-stat fc-stat-hard"><span class="fc-stat-num">${hardCount}</span><span class="fc-stat-label">Hard</span></div>
-            <div class="fc-stat fc-stat-again"><span class="fc-stat-num">${againCount}</span><span class="fc-stat-label">Again</span></div>
-            ${unratedCount > 0 ? `<div class="fc-stat fc-stat-skip"><span class="fc-stat-num">${unratedCount}</span><span class="fc-stat-label">Skipped</span></div>` : ""}
+          <div class="fc-sum-badges">
+            <span class="fc-sb fc-sb-easy">${easyCount} easy</span>
+            <span class="fc-sb fc-sb-hard">${hardCount} hard</span>
+            <span class="fc-sb fc-sb-again">${againCount} again</span>
+            ${unratedCount > 0 ? `<span class="fc-sb fc-sb-skip">${unratedCount} skip</span>` : ""}
           </div>
 
-          ${totalReviews > 0 ? `<div class="fc-lifetime-stats">${totalReviews} lifetime reviews${streak > 1 ? ` \u00b7 ${streak}-day streak` : ""}</div>` : ""}
+          ${totalReviews > 0 ? `<div class="fc-sum-life">${totalReviews} lifetime reviews${streak > 1 ? ` \u00b7 ${streak}-day streak` : ""}</div>` : ""}
 
-          <div class="fc-summary-actions">
-            ${hardCards.length > 0 ? `<button class="fc-btn fc-btn-primary" id="fc-review-hard" type="button">Review ${hardCards.length} Hard Words</button>` : ""}
-            <button class="fc-btn fc-btn-secondary" id="fc-restart" type="button">Restart All</button>
-            <button class="fc-btn fc-btn-secondary" id="fc-back" type="button">Back to Topics</button>
+          <div class="fc-sum-actions">
+            ${hardCards.length > 0 ? `<button class="fc-btn-pri" id="fc-review-hard" type="button">Review ${hardCards.length} Hard</button>` : ""}
+            <button class="fc-btn-sec" id="fc-restart" type="button">Restart</button>
+            <button class="fc-btn-sec" id="fc-back" type="button">Topics</button>
           </div>
 
-          <details class="fc-summary-details" open>
-            <summary class="fc-sum-toggle">All Words</summary>
-            <div class="fc-summary-table-wrap">
-              <table class="fc-summary-table">
-                <thead><tr><th>Dutch</th><th>English</th><th>Rating</th></tr></thead>
-                <tbody>${summaryRows}</tbody>
-              </table>
-            </div>
-          </details>
+          <div class="fc-sum-table-wrap">
+            <table class="fc-sum-table">
+              <thead><tr><th>Dutch</th><th>English</th><th>Rating</th></tr></thead>
+              <tbody>${summaryRows}</tbody>
+            </table>
+          </div>
         </div>
       </div>`;
 
@@ -663,186 +670,449 @@ customElements.define("flashcard-app", FlashcardApp);
 </script>
 
 <style>
-  .fc-container { max-width: 640px; margin: 0 auto; }
-  .fc-center { text-align: center; }
-  .fc-heading { font-size: var(--sl-text-h4); font-weight: 700; margin: 0 0 0.25rem; color: var(--sl-color-white); line-height: var(--sl-line-height-headings); }
-  .fc-subheading { margin: 0 0 1.25rem; color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); }
-
-  /* grid header with stats badge */
-  .fc-grid-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-  .fc-stats-badge {
-    font-size: var(--sl-text-2xs); font-weight: 600; color: var(--sl-color-text-accent);
-    background: var(--sl-color-accent-low); padding: 0.2rem 0.6rem; border-radius: 999rem;
+  /* ========== Container ========== */
+  .fc-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    font-family: var(--sl-font);
   }
 
-  /* topic grid */
-  .fc-topic-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.65rem; margin-bottom: 1rem;
+  /* ========== Topic Grid Screen ========== */
+  .fc-top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
   }
-  .fc-topic-card {
-    position: relative; display: flex; flex-direction: column; align-items: flex-start;
-    gap: 0.15rem; padding: 0.75rem 0.85rem; border: 1px solid var(--sl-color-gray-5);
-    border-radius: 0.5rem; background: var(--sl-color-black); cursor: pointer; text-align: left;
-    color: var(--sl-color-white); box-shadow: var(--sl-shadow-sm);
-    transition: border-color 0.15s, background-color 0.15s;
+  .fc-title {
+    font-size: var(--sl-text-h4);
+    font-weight: 700;
+    margin: 0;
+    color: var(--sl-color-white);
+    line-height: var(--sl-line-height-headings);
   }
-  .fc-topic-card:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
-  .fc-topic-card.fc-topic-selected { border-color: var(--sl-color-accent); background-color: var(--sl-color-accent-low); }
-  .fc-topic-check { position: absolute; top: 0.45rem; right: 0.6rem; font-size: var(--sl-text-sm); font-weight: 700; color: var(--sl-color-accent-high); line-height: 1; }
-  .fc-topic-name { font-weight: 600; font-size: var(--sl-text-sm); line-height: 1.25; }
-  .fc-topic-meta { display: flex; align-items: center; gap: 0.5rem; width: 100%; }
-  .fc-topic-count { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
-  .fc-topic-mastery { font-size: var(--sl-text-2xs); font-weight: 700; color: var(--sl-color-text-accent); margin-left: auto; }
+  .fc-stats-pill {
+    font-size: var(--sl-text-2xs);
+    font-weight: 600;
+    color: var(--sl-color-text-accent);
+    background: var(--sl-color-accent-low);
+    padding: 0.15rem 0.55rem;
+    border-radius: 999rem;
+  }
 
-  /* mastery bar on topic cards */
-  .fc-mastery-bar { width: 100%; height: 3px; border-radius: 2px; background: var(--sl-color-gray-6); display: flex; overflow: hidden; margin-top: 0.3rem; }
+  /* Direction pills */
+  .fc-dir-bar {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .fc-dir {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
+  }
+  .fc-dir:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+  .fc-dir.fc-dir-on { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
+
+  /* Topic checkbox list */
+  .fc-topic-box {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .fc-topic-all {
+    background: var(--sl-color-bg-nav);
+    font-weight: 700;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  .fc-topic-divider { display: none; }
+  .fc-topic-scroll {
+    max-height: 250px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .fc-topic-row {
+    display: grid;
+    grid-template-columns: 20px 1fr auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 0 0.5rem;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-bottom: 1px solid var(--sl-color-gray-6);
+    user-select: none;
+  }
+  .fc-topic-row:last-child { border-bottom: none; }
+  .fc-topic-row:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); }
+  .fc-topic-row.fc-topic-sel { background-color: var(--sl-color-accent-low); }
+  .fc-check {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--sl-color-text-accent);
+    cursor: pointer;
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .fc-topic-name {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-white);
+    grid-row: 1;
+    grid-column: 2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fc-topic-count {
+    font-size: var(--sl-text-2xs);
+    color: var(--sl-color-gray-3);
+    grid-row: 1;
+    grid-column: 3;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .fc-topic-pct {
+    font-size: var(--sl-text-2xs);
+    font-weight: 700;
+    color: var(--sl-color-text-accent);
+    grid-row: 1;
+    grid-column: 4;
+    text-align: right;
+    min-width: 28px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fc-mastery-bar {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sl-color-gray-6);
+    display: flex;
+    overflow: hidden;
+    margin-top: 0.2rem;
+  }
+  .fc-mastery-fill { height: 100%; }
   .fc-mastery-easy { background: #4ade80; }
   .fc-mastery-hard { background: #fbbf24; }
   .fc-mastery-again { background: #f87171; }
 
-  /* direction picker */
-  .fc-direction { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-  .fc-dir-btn {
-    padding: 0.4rem 0.9rem; border-radius: 999rem; font-size: var(--sl-text-xs); font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: all 0.15s;
+  /* Bottom action bar */
+  .fc-bottom-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
-  .fc-dir-btn:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
-  .fc-dir-btn.fc-dir-active { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
-
-  /* actions */
-  .fc-actions { display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; }
-
-  /* buttons */
-  .fc-btn {
-    padding: 0.55rem 1.4rem; border-radius: 999rem; font-size: var(--sl-text-sm); font-weight: 600;
-    cursor: pointer; border: 1px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: background-color 0.15s, opacity 0.15s;
+  .fc-fav-filter {
+    padding: 0.4rem 0.8rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: #f87171;
+    transition: all 0.15s;
   }
-  .fc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .fc-btn-primary { background: var(--sl-color-text-accent); color: var(--sl-color-black); border-color: var(--sl-color-text-accent); }
-  .fc-btn-primary:hover:not(:disabled) { opacity: 0.88; }
-  .fc-btn-secondary:hover:not(:disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
-  .fc-btn-small { padding: 0.3rem 0.85rem; font-size: var(--sl-text-xs); }
+  .fc-fav-filter:hover { background-color: rgba(248, 113, 113, 0.1); }
+  .fc-fav-filter.fc-fav-filter-on { background: #fecaca; color: #b91c1c; border-color: #fca5a5; }
+  .fc-start {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent);
+    background: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    transition: opacity 0.15s;
+  }
+  .fc-start:hover:not(:disabled) { opacity: 0.88; }
+  .fc-start:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  /* toolbar */
-  .fc-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-  .fc-counter { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
+  /* ========== Card Practice Screen ========== */
+  .fc-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+  .fc-toolbar-r { display: flex; align-items: center; gap: 0.35rem; }
+  .fc-tbtn {
+    padding: 0.2rem 0.65rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-2xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
+  }
+  .fc-tbtn:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+  .fc-count {
+    font-size: var(--sl-text-2xs);
+    color: var(--sl-color-gray-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .fc-score { color: var(--sl-color-text-accent); font-weight: 600; }
 
-  /* progress */
-  .fc-progress-bar { width: 100%; height: 4px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 1.25rem; overflow: hidden; }
-  .fc-progress-fill { height: 100%; border-radius: 2px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+  /* Progress bar */
+  .fc-pbar {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sl-color-gray-5);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .fc-pfill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--sl-color-accent);
+    transition: width 0.3s ease;
+  }
 
-  /* card row with nav arrows */
-  .fc-card-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+  /* Card row with nav arrows */
+  .fc-card-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
+  }
   .fc-nav {
-    flex-shrink: 0; width: 40px; height: 80px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; line-height: 1; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
-    background: none; color: var(--sl-color-gray-3); cursor: pointer; transition: all 0.15s;
+    flex-shrink: 0;
+    width: 36px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    line-height: 1;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    transition: all 0.15s;
     user-select: none;
   }
-  .fc-nav:hover:not(.fc-nav-disabled) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); color: var(--sl-color-white); }
-  .fc-nav-disabled { opacity: 0.2; cursor: default; }
+  .fc-nav:hover:not(.fc-nav-off) { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); color: var(--sl-color-white); }
+  .fc-nav-off { opacity: 0.2; cursor: default; }
 
-  /* card */
+  /* THE CARD: fixed 280px height */
   .fc-card {
-    flex: 1; min-width: 0;
-    border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
-    padding: 2rem 1.5rem; min-height: 220px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    text-align: center; background: var(--sl-color-black);
-    box-shadow: var(--sl-shadow-sm); transition: border-color 0.2s, background-color 0.2s;
+    flex: 1;
+    min-width: 0;
+    height: 280px;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+    box-shadow: var(--sl-shadow-sm);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s, background-color 0.2s;
   }
   .fc-card:hover { border-color: var(--sl-color-gray-2); background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); }
-  .fc-card-inner { width: 100%; }
-  .fc-lang-badge {
-    display: inline-block; font-size: var(--sl-text-2xs); font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; padding: 0.15rem 0.5rem; border-radius: 0.25rem;
-    background: var(--sl-color-gray-5); color: var(--sl-color-gray-2); margin-bottom: 0.5rem;
+
+  /* Face: fills available space, content centered */
+  .fc-face {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem 1.25rem;
+    min-height: 0;
+    overflow-y: auto;
   }
-  .fc-lang-badge-answer { background: var(--sl-color-accent-low); color: var(--sl-color-accent-high); }
-  .fc-word { font-size: 1.75rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.3rem; line-height: var(--sl-line-height-headings); }
-  .fc-ipa { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-bottom: 0.5rem; }
-  .fc-audio-btn {
-    display: inline-flex; align-items: center; justify-content: center; padding: 0.4rem;
-    border: 1px solid var(--sl-color-gray-5); border-radius: 0.25rem; background: none;
-    color: var(--sl-color-text-accent); cursor: pointer; transition: background-color 0.15s;
+
+  /* Bottom: rating buttons pinned to bottom of card */
+  .fc-bottom {
+    flex-shrink: 0;
+    padding: 0 1rem 0.75rem;
+    display: flex;
+    justify-content: center;
   }
-  .fc-audio-btn:hover { background-color: var(--sl-color-accent-low); }
-  .fc-divider { width: 60px; height: 1px; background: var(--sl-color-gray-5); margin: 1rem auto; }
-  .fc-answer { font-size: 1.4rem; font-weight: 600; color: var(--sl-color-text-accent); margin-bottom: 0.2rem; }
 
-  /* tap hint (shown when card is not flipped) */
-  .fc-tap-hint { text-align: center; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin-bottom: 0.5rem; font-style: italic; }
+  /* Card content elements */
+  .fc-badge {
+    display: inline-block;
+    font-size: var(--sl-text-2xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.2rem;
+    background: var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    margin-bottom: 0.3rem;
+  }
+  .fc-badge-ans { background: var(--sl-color-accent-low); color: var(--sl-color-accent-high); }
+  .fc-word {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin-bottom: 0.15rem;
+    line-height: var(--sl-line-height-headings);
+  }
+  .fc-word-sm {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin-bottom: 0.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .fc-ipa {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    margin-bottom: 0.3rem;
+  }
+  .fc-divider {
+    width: 50px;
+    height: 1px;
+    background: var(--sl-color-gray-5);
+    margin: 0.5rem 0;
+  }
+  .fc-answer {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--sl-color-text-accent);
+    margin-bottom: 0.1rem;
+  }
 
-  .fc-shortcut-hint { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-bottom: 1rem; }
+  /* Audio button */
+  .fc-audio {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    transition: color 0.15s, background-color 0.15s, transform 0.15s;
+  }
+  .fc-audio:hover { color: var(--sl-color-text-accent); background-color: var(--sl-color-accent-low); transform: scale(1.1); }
+  .fc-audio-big { transform: scale(1.8); margin: 0.5rem 0; }
+  .fc-audio-big:hover { transform: scale(1.95); }
 
-  /* listen mode */
-  .fc-listen-btn { transform: scale(2); margin: 1rem 0; }
-  .fc-listen-hint { font-size: 2.5rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.75rem; }
+  /* Listen mode */
+  .fc-listen-q { font-size: 2rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.3rem; }
 
-  /* dictation mode */
-  .fc-dictation-form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; width: 100%; }
-  .fc-dictation-input {
-    width: 100%; padding: 0.65rem 0.85rem; font-size: 1.1rem; font-family: inherit;
-    border: 2px solid var(--sl-color-gray-5); border-radius: 0.5rem;
-    background: var(--sl-color-black); color: var(--sl-color-white);
-    text-align: center; outline: none; transition: border-color 0.15s;
+  /* Dictation */
+  .fc-dict-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    width: 100%;
+  }
+  .fc-dict-input {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    font-size: 1rem;
+    font-family: inherit;
+    border: 2px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
     box-sizing: border-box;
   }
-  .fc-dictation-input:focus { border-color: var(--sl-color-text-accent); }
-  .fc-dictation-input::placeholder { color: var(--sl-color-gray-3); }
-  .fc-dictation-check { align-self: center; }
-  .fc-dictation-result { width: 100%; }
-  .fc-dictation-status { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
-  .fc-dictation-correct .fc-dictation-status { color: #4ade80; }
-  .fc-dictation-wrong .fc-dictation-status { color: #f87171; }
-  .fc-dictation-your { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-bottom: 0.5rem; }
-  .fc-dictation-diff { color: #f87171; font-weight: 600; }
-  .fc-dictation-answer { font-size: 1.4rem; font-weight: 700; color: var(--sl-color-white); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-  .fc-score { color: var(--sl-color-text-accent); font-weight: 600; }
-  .fc-score-final { font-size: 1.25rem; font-weight: 700; color: var(--sl-color-text-accent); margin-bottom: 1.25rem; }
+  .fc-dict-input:focus { border-color: var(--sl-color-text-accent); }
+  .fc-dict-input::placeholder { color: var(--sl-color-gray-3); }
+  .fc-dict-check {
+    align-self: center;
+    padding: 0.35rem 1.2rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent);
+    background: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    transition: opacity 0.15s;
+  }
+  .fc-dict-check:hover { opacity: 0.88; }
+  .fc-dict-result { width: 100%; margin-bottom: 0.25rem; }
+  .fc-dict-status { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .fc-dict-ok .fc-dict-status { color: #4ade80; }
+  .fc-dict-no .fc-dict-status { color: #f87171; }
+  .fc-dict-yours { font-size: var(--sl-text-xs); color: #f87171; font-weight: 600; margin-bottom: 0.25rem; text-decoration: line-through; }
+  .fc-next-btn {
+    padding: 0.35rem 1.2rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
+  }
+  .fc-next-btn:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
 
-  /* focus styles */
-  .fc-btn:focus-visible, .fc-nav:focus-visible, .fc-dir-btn:focus-visible,
-  .fc-topic-card:focus-visible, .fc-audio-btn:focus-visible, .fc-fav-btn:focus-visible,
-  .fc-rate-btn:focus-visible {
-    outline: 2px solid var(--sl-color-text-accent);
-    outline-offset: 2px;
+  /* Hint text */
+  .fc-hint {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    font-style: italic;
+  }
+  .fc-keys {
+    text-align: center;
+    font-size: var(--sl-text-2xs);
+    color: var(--sl-color-gray-3);
+    margin-top: 0.2rem;
   }
 
-  /* toolbar right group */
-  .fc-toolbar-right { display: flex; align-items: center; gap: 0.4rem; }
-
-  /* favorite button */
-  .fc-fav-btn {
-    display: inline-flex; align-items: center; justify-content: center; padding: 0.3rem;
-    border: none; border-radius: 50%; background: none;
-    color: var(--sl-color-gray-3); cursor: pointer; transition: color 0.15s, transform 0.15s;
-  }
-  .fc-fav-btn:hover { color: #f87171; transform: scale(1.15); }
-  .fc-fav-btn.fc-fav-on { color: #ef4444; }
-  .fc-fav-btn.fc-fav-on svg { fill: #ef4444; }
-
-  /* favorites filter active */
-  .fc-fav-active { background: #fecaca; color: #b91c1c !important; border-color: #fca5a5 !important; }
-
-  /* rating buttons */
-  .fc-rating {
-    display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;
-  }
-  .fc-rate-btn {
-    padding: 0.4rem 1.2rem; border-radius: 999rem; font-size: var(--sl-text-sm); font-weight: 600;
-    cursor: pointer; border: 2px solid var(--sl-color-gray-5); background: none;
-    color: var(--sl-color-white); transition: all 0.15s;
-    display: inline-flex; align-items: center; gap: 0.35rem;
+  /* Rating buttons inside card */
+  .fc-rate-row { display: flex; gap: 0.4rem; }
+  .fc-rate {
+    padding: 0.3rem 0.9rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
   }
   .fc-rate-key {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.2em; height: 1.2em; border-radius: 0.2rem;
-    background: var(--sl-color-gray-6); font-size: 0.75em; font-weight: 700;
-    color: var(--sl-color-gray-3); line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 0.15rem;
+    background: var(--sl-color-gray-6);
+    font-size: 0.7em;
+    font-weight: 700;
+    color: var(--sl-color-gray-3);
+    line-height: 1;
   }
   .fc-rate-again { border-color: #f87171; color: #f87171; }
   .fc-rate-again:hover { background: #f87171; color: var(--sl-color-black); }
@@ -854,87 +1124,171 @@ customElements.define("flashcard-app", FlashcardApp);
   .fc-rate-easy:hover { background: #4ade80; color: var(--sl-color-black); }
   .fc-rate-easy:hover .fc-rate-key { background: rgba(0,0,0,0.2); color: var(--sl-color-black); }
 
-  /* stats */
-  .fc-stats-line { color: var(--sl-color-text-accent); font-weight: 600; }
-  .fc-lifetime-stats { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-bottom: 1rem; text-align: center; }
-
-  /* ---- Summary screen ---- */
-  .fc-summary { text-align: center; }
-
-  .fc-summary-stats {
-    display: flex; gap: 1rem; justify-content: center; margin: 1.25rem 0;
+  /* Favorite button */
+  .fc-fav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    transition: color 0.15s, transform 0.15s;
   }
-  .fc-stat {
-    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-    padding: 0.6rem 1rem; border-radius: 0.5rem; border: 1px solid var(--sl-color-gray-5);
-    background: var(--sl-color-black); min-width: 60px;
-  }
-  .fc-stat-num { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-  .fc-stat-label { font-size: var(--sl-text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .fc-stat-easy .fc-stat-num { color: #4ade80; }
-  .fc-stat-easy { border-color: #4ade80; }
-  .fc-stat-hard .fc-stat-num { color: #fbbf24; }
-  .fc-stat-hard { border-color: #fbbf24; }
-  .fc-stat-again .fc-stat-num { color: #f87171; }
-  .fc-stat-again { border-color: #f87171; }
-  .fc-stat-skip .fc-stat-num { color: var(--sl-color-gray-3); }
+  .fc-fav-btn:hover { color: #f87171; transform: scale(1.15); }
+  .fc-fav-btn.fc-fav-on { color: #ef4444; }
+  .fc-fav-btn.fc-fav-on svg { fill: #ef4444; }
 
-  .fc-summary-actions { display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
-
-  .fc-summary-details { text-align: left; margin-top: 0.5rem; }
-  .fc-sum-toggle {
-    cursor: pointer; font-size: var(--sl-text-sm); font-weight: 600; color: var(--sl-color-gray-3);
-    padding: 0.4rem 0; user-select: none;
+  /* ========== Summary Screen ========== */
+  .fc-sum { text-align: center; }
+  .fc-sum-title {
+    font-size: var(--sl-text-h4);
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    color: var(--sl-color-white);
+    line-height: var(--sl-line-height-headings);
   }
-  .fc-sum-toggle:hover { color: var(--sl-color-white); }
-
-  .fc-summary-table-wrap {
-    max-height: 400px; overflow-y: auto; margin-top: 0.5rem;
-    border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;
+  .fc-sum-score {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--sl-color-text-accent);
+    margin-bottom: 0.75rem;
   }
-  .fc-summary-table { width: 100%; border-collapse: collapse; font-size: var(--sl-text-sm); }
-  .fc-summary-table thead { position: sticky; top: 0; background: var(--sl-color-black); z-index: 1; }
-  .fc-summary-table th {
-    padding: 0.5rem 0.65rem; text-align: left; font-weight: 600;
-    border-bottom: 2px solid var(--sl-color-gray-5); color: var(--sl-color-gray-2);
+  .fc-sum-badges {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .fc-sb {
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999rem;
+  }
+  .fc-sb-easy { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  .fc-sb-hard { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+  .fc-sb-again { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+  .fc-sb-skip { color: var(--sl-color-gray-3); background: var(--sl-color-gray-6); }
+
+  .fc-sum-life {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    margin-bottom: 0.75rem;
+  }
+
+  .fc-sum-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .fc-btn-pri {
+    padding: 0.45rem 1.2rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-text-accent);
+    background: var(--sl-color-text-accent);
+    color: var(--sl-color-black);
+    transition: opacity 0.15s;
+  }
+  .fc-btn-pri:hover { opacity: 0.88; }
+  .fc-btn-sec {
+    padding: 0.45rem 1.2rem;
+    border-radius: 999rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--sl-color-gray-5);
+    background: none;
+    color: var(--sl-color-white);
+    transition: all 0.15s;
+  }
+  .fc-btn-sec:hover { background-color: var(--sl-color-gray-7, var(--sl-color-gray-6)); border-color: var(--sl-color-gray-2); }
+
+  /* Summary word table */
+  .fc-sum-table-wrap {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    text-align: left;
+  }
+  .fc-sum-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: var(--sl-text-xs);
   }
-  .fc-summary-table td { padding: 0.4rem 0.65rem; border-bottom: 1px solid var(--sl-color-gray-6); }
-  .fc-sum-nl { color: var(--sl-color-white); font-weight: 600; }
-  .fc-sum-en { color: var(--sl-color-gray-2); }
-  .fc-sum-rating { font-weight: 700; font-size: var(--sl-text-xs); text-align: center; width: 60px; }
-  .fc-sum-easy .fc-sum-rating { color: #4ade80; }
-  .fc-sum-hard .fc-sum-rating { color: #fbbf24; }
-  .fc-sum-again .fc-sum-rating { color: #f87171; }
-  .fc-sum-again { background-color: rgba(248, 113, 113, 0.08); }
-  .fc-sum-skip .fc-sum-rating { color: var(--sl-color-gray-3); }
+  .fc-sum-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--sl-color-black);
+    z-index: 1;
+  }
+  .fc-sum-table th {
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-2xs);
+  }
+  .fc-sum-table td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--sl-color-gray-6);
+  }
+  .fc-sr-nl { color: var(--sl-color-white); font-weight: 600; }
+  .fc-sr-en { color: var(--sl-color-gray-2); }
+  .fc-sr-rat { font-weight: 700; font-size: var(--sl-text-2xs); text-align: center; width: 50px; }
+  .fc-sr-easy .fc-sr-rat { color: #4ade80; }
+  .fc-sr-hard .fc-sr-rat { color: #fbbf24; }
+  .fc-sr-again .fc-sr-rat { color: #f87171; }
+  .fc-sr-again { background-color: rgba(248, 113, 113, 0.08); }
+  .fc-sr-skip .fc-sr-rat { color: var(--sl-color-gray-3); }
 
-  /* screen-reader only */
+  /* Screen-reader only */
   .sr-only {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
   }
 
-  /* Mobile responsiveness */
+  /* Focus styles */
+  .fc-rate:focus-visible, .fc-tbtn:focus-visible, .fc-nav:focus-visible,
+  .fc-dir:focus-visible, .fc-start:focus-visible, .fc-audio:focus-visible,
+  .fc-fav-btn:focus-visible, .fc-btn-pri:focus-visible, .fc-btn-sec:focus-visible,
+  .fc-fav-filter:focus-visible, .fc-next-btn:focus-visible, .fc-dict-check:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
+
+  /* ========== Mobile ========== */
   @media (max-width: 480px) {
-    .fc-word { font-size: 1.4rem; }
-    .fc-answer { font-size: 1.15rem; }
-    .fc-card { padding: 1.5rem 1rem; min-height: 170px; }
-    .fc-nav { width: 36px; height: 70px; font-size: 1.3rem; }
-    .fc-shortcut-hint { display: none; }
-    .fc-topic-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-    .fc-summary-stats { gap: 0.5rem; }
-    .fc-stat { padding: 0.4rem 0.6rem; min-width: 50px; }
-    .fc-stat-num { font-size: 1.2rem; }
+    .fc-word { font-size: 1.35rem; }
+    .fc-answer { font-size: 1.1rem; }
+    .fc-card { height: 260px; }
+    .fc-nav { width: 30px; height: 60px; }
+    .fc-keys { display: none; }
     .fc-rate-key { display: none; }
+    .fc-topic-name { font-size: var(--sl-text-xs); }
   }
   @media (pointer: coarse) {
     .fc-nav { min-width: 44px; min-height: 44px; }
-    .fc-btn { min-height: 44px; }
-    .fc-dir-btn { min-height: 40px; padding: 0.5rem 1rem; }
-    .fc-rate-btn { min-height: 44px; padding: 0.5rem 1.2rem; }
+    .fc-start { min-height: 48px; }
+    .fc-dir { min-height: 40px; padding: 0.5rem 0.8rem; }
+    .fc-rate { min-height: 44px; padding: 0.45rem 0.9rem; }
     .fc-fav-btn { min-width: 44px; min-height: 44px; }
-    .fc-audio-btn { min-width: 44px; min-height: 44px; }
+    .fc-audio { min-width: 44px; min-height: 44px; padding: 8px; }
+    .fc-tbtn { min-height: 36px; }
     .fc-rate-key { display: none; }
+    .fc-fav-filter { min-height: 40px; }
+    .fc-btn-pri, .fc-btn-sec { min-height: 44px; }
+    .fc-next-btn { min-height: 44px; }
+    .fc-dict-check { min-height: 44px; }
   }
 </style>
