@@ -13,9 +13,9 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
+            { label: "Phonetics Guide (IPA)", slug: "phonetics-guide" },
             { label: "Alphabet", slug: "alphabet" },
             { label: "Pronunciation Guide", slug: "pronunciation-guide" },
-            { label: "Phonetics Guide (IPA)", slug: "phonetics-guide" },
           ],
         },
         {
