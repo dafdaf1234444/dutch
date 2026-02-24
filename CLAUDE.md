@@ -21,7 +21,7 @@ npm run extract-flashcards  # Regenerate flashcard data from MDX
 src/
 ├── components/
 │   ├── DutchAudio.astro      # Auto-injects speaker buttons into tables & dialogues
-│   ├── FlashcardApp.astro    # Main flashcard practice app (23 decks, 1,615 cards)
+│   ├── FlashcardApp.astro    # Main flashcard practice app (23 decks, 1,683 cards)
 │   ├── PageFlashcards.astro  # Per-page flashcard widget (auto-extracts from tables)
 │   ├── Say.astro             # Inline pronunciation button: <Say text="hallo" />
 │   ├── ExamPractice.astro    # Interactive exam with live validation & scoring
@@ -107,10 +107,14 @@ All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑl
 
 **Progress features:**
 - **Spaced repetition (light):** Cards are prioritized by difficulty — unseen and "Again" cards appear first, "Easy" cards last
-- **Difficulty rating:** After revealing each card, rate it Again/Hard/Easy to track mastery
+- **Difficulty rating:** After revealing each card, rate it Again/Hard/Easy (keyboard shortcuts: 1/2/3) to track mastery
+- **Session summary:** End-of-practice screen shows stat cards (easy/hard/again counts), scrollable word list with color-coded ratings
+- **Review hard words:** After completing a session, option to re-practice only words rated Again or Hard
+- **Topic mastery:** Each topic card on the grid shows a mastery percentage and color-coded bar (green=easy, yellow=hard, red=again)
 - **Favorites:** Heart icon on each card to bookmark difficult words; filter by favorites on topic grid
 - **Progress persistence:** All card data (difficulty, reviews, favorites) and stats (lifetime reviews, streak) saved to localStorage
 - **Stats display:** Review count and streak shown on topic grid and completion screen
+- **PageFlashcards ratings:** Per-page flashcard widget also supports Again/Hard/Easy ratings with session summary, syncs to shared localStorage
 
 Two independent extraction mechanisms:
 
