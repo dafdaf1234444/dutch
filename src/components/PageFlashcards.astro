@@ -32,9 +32,8 @@ function cleanText(cell: Element): string {
   clone.querySelectorAll("em").forEach(em => em.remove());
   clone.querySelectorAll(".dutch-audio-btn").forEach(btn => btn.remove());
   let text = clone.textContent?.trim() ?? "";
-  text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) =>
-    inner.length > 3 ? " " : `(${inner})`
-  );
+  // Strip all parenthetical content containing letters (English translations)
+  text = text.replace(/\s*\([^)]*[a-zA-Z][^)]*\)\s*/g, " ");
   // Strip IPA in square brackets [hɔnt] and slashes /maːn/
   text = text.replace(/\[[^\]]*\]/g, "");
   text = text.replace(/\/[^/]+\//g, "");

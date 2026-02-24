@@ -50,10 +50,8 @@
     // Remove <em> elements (English translations in italics)
     clone.querySelectorAll("em").forEach(em => em.remove());
     let text = clone.textContent?.trim() ?? "";
-    // Strip parenthetical English translations (more than 3 chars likely English)
-    text = text.replace(/\s*\(([^)]*[a-zA-Z][^)]*)\)\s*/g, (_, inner) => {
-      return inner.length > 3 ? " " : `(${inner})`;
-    });
+    // Strip all parenthetical content containing letters (English translations)
+    text = text.replace(/\s*\([^)]*[a-zA-Z][^)]*\)\s*/g, " ");
     // Strip IPA in square brackets [hɔnt] and slashes /maːn/
     text = text.replace(/\[[^\]]*\]/g, "");
     text = text.replace(/\/[^/]+\//g, "");
@@ -223,7 +221,7 @@
         clone.querySelectorAll("em").forEach(em => em.remove());
         let text = clone.textContent?.trim() ?? "";
         text = text.replace(/^[:\s]+/, "");
-        text = text.replace(/\s*\(([^)]{4,})\)\s*/g, " ");
+        text = text.replace(/\s*\([^)]*[a-zA-Z][^)]*\)\s*/g, " ");
         text = text.replace(/\/[^/]+\//g, "");
         text = text.replace(/\s+/g, " ").trim();
         if (!text || text.length < 2) continue;
