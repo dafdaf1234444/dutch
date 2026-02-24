@@ -5,9 +5,11 @@ description: All 26 letters of the Dutch alphabet with their names, pronunciatio
 
 import DutchAudio from '@components/DutchAudio.astro';
 import PageFlashcards from '@components/PageFlashcards.astro';
+import PageSummary from '@components/PageSummary.astro';
 import Say from '@components/Say.astro';
 
 <DutchAudio />
+<PageSummary wordCount={48} topics={["Alphabet", "Letters", "Spelling"]} />
 
 The Dutch alphabet has the same 26 letters as English, but the letter names and sounds are different. Dutch also frequently uses the digraph **ij**, which is sometimes considered the 27th letter.
 

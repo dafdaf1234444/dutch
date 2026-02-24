@@ -370,6 +370,7 @@ class FlashcardApp extends HTMLElement {
     });
     this.current = 0;
     this.flipped = false;
+    this.sessionRatings = new Map();
     this.renderCard();
   }
 
@@ -500,6 +501,14 @@ class FlashcardApp extends HTMLElement {
       bottomHTML = `<div class="fc-hint">Tap card or press Space</div>`;
     }
 
+    /* Running tally counts */
+    let tallyEasy = 0, tallyHard = 0, tallyAgain = 0;
+    for (const [, r] of this.sessionRatings) {
+      if (r === 3) tallyEasy++;
+      else if (r === 2) tallyHard++;
+      else if (r === 1) tallyAgain++;
+    }
+
     this.innerHTML = `
       <div class="fc-wrap">
         <div class="fc-toolbar">
@@ -511,6 +520,11 @@ class FlashcardApp extends HTMLElement {
           </div>
         </div>
         <div class="fc-pbar"><div class="fc-pfill" style="width:${pct}%"></div></div>
+        <div class="fc-tally">
+          ${tallyEasy > 0 ? `<span class="fc-tb fc-tb-easy">${tallyEasy} easy</span>` : ""}
+          ${tallyHard > 0 ? `<span class="fc-tb fc-tb-hard">${tallyHard} hard</span>` : ""}
+          ${tallyAgain > 0 ? `<span class="fc-tb fc-tb-again">${tallyAgain} again</span>` : ""}
+        </div>
 
         <div class="fc-card-row">
           <button class="fc-nav ${this.current === 0 ? "fc-nav-off" : ""}" id="fc-prev" type="button" aria-label="Previous">&#8249;</button>
@@ -873,7 +887,7 @@ customElements.define("flashcard-app", FlashcardApp);
     height: 3px;
     border-radius: 2px;
     background: var(--sl-color-gray-5);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.4rem;
     overflow: hidden;
   }
   .fc-pfill {
@@ -882,6 +896,13 @@ customElements.define("flashcard-app", FlashcardApp);
     background: var(--sl-color-accent);
     transition: width 0.3s ease;
   }
+
+  /* Running tally */
+  .fc-tally { display: flex; gap: 0.3rem; justify-content: center; margin-bottom: 0.4rem; min-height: 1.2rem; }
+  .fc-tb { font-size: var(--sl-text-2xs); font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999rem; }
+  .fc-tb-easy { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  .fc-tb-hard { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+  .fc-tb-again { color: #f87171; background: rgba(248, 113, 113, 0.12); }
 
   /* Card row with nav arrows */
   .fc-card-row {

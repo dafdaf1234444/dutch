@@ -32,6 +32,7 @@ const SOURCES = [
   { file: "phrases/fun-stories.mdx", name: "Fun Stories" },
   { file: "phrases/audio-stories.mdx", name: "Audio Stories" },
   { file: "phrases/dialogues.mdx", name: "Dialogues" },
+  { file: "phrases/connected-stories.mdx", name: "Connected Stories" },
 ];
 
 // Column headers that contain Dutch text

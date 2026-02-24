@@ -21,15 +21,16 @@ npm run extract-flashcards  # Regenerate flashcard data from MDX
 src/
 ├── components/
 │   ├── DutchAudio.astro      # Auto-injects speaker buttons into tables & dialogues
-│   ├── FlashcardApp.astro    # Main flashcard practice app (23 decks, 1,683 cards)
-│   ├── PageFlashcards.astro  # Per-page flashcard widget (auto-extracts from tables)
+│   ├── FlashcardApp.astro    # Main flashcard practice app (24 decks, 1,752 cards)
+│   ├── PageFlashcards.astro  # Per-page flashcard widget (stable DOM, auto-extracts)
+│   ├── PageSummary.astro     # Server-rendered summary box (word count, topics, flashcard link)
 │   ├── Say.astro             # Inline pronunciation button: <Say text="hallo" />
 │   ├── ExamPractice.astro    # Interactive exam with live validation & scoring
 │   └── ExternalLinks.astro   # Opens external links in new tabs
 ├── content/docs/             # All content pages (MDX)
 │   ├── index.mdx             # Homepage with learning path
-│   ├── grammar/              # 4 grammar pages
-│   ├── phrases/              # 6 phrase/dialogue pages
+│   ├── grammar/              # 6 grammar pages
+│   ├── phrases/              # 8 phrase/dialogue/story pages
 │   ├── vocabulary/           # 14 vocabulary + 2 CEFR pages
 │   ├── flashcards.mdx        # Standalone flashcard page
 │   ├── exam-practice.mdx     # Exam prep with MCQ
@@ -56,8 +57,10 @@ description: Brief description.
 
 import DutchAudio from '@components/DutchAudio.astro';
 import PageFlashcards from '@components/PageFlashcards.astro';
+import PageSummary from '@components/PageSummary.astro';
 
 <DutchAudio />
+<PageSummary wordCount={55} topics={["Topic1", "Topic2", "Topic3"]} />
 
 | Dutch | English | IPA | Example Sentence |
 |-------|---------|-----|------------------|
@@ -67,6 +70,7 @@ import PageFlashcards from '@components/PageFlashcards.astro';
 ```
 
 - `<DutchAudio />` must be on its own line after imports
+- `<PageSummary />` goes right after `<DutchAudio />` with word count and topic tags
 - `<PageFlashcards />` goes at the end of the file
 - IPA wrapped in backticks: `` `/ˈhɑloː/` ``
 
@@ -114,14 +118,27 @@ All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑl
 - **Favorites:** Heart icon on each card to bookmark difficult words; filter by favorites on topic grid
 - **Progress persistence:** All card data (difficulty, reviews, favorites) and stats (lifetime reviews, streak) saved to localStorage
 - **Stats display:** Review count and streak shown on topic grid and completion screen
+- **Running tally:** Both FlashcardApp and PageFlashcards show colored easy/hard/again badges during practice, updating after each rating
 - **PageFlashcards ratings:** Per-page flashcard widget also supports Again/Hard/Easy ratings with session summary, syncs to shared localStorage
+- **PageFlashcards stable DOM:** Uses a skeleton built once in `connectedCallback()` with three screens (setup/practice/summary). `renderCard()` does targeted element updates only — no full innerHTML rebuild, preventing scroll position loss and layout jumps
 
 Two independent extraction mechanisms:
 
-1. **Global** (FlashcardApp): `npm run extract-flashcards` generates `src/data/flashcard-decks.ts` from 23 MDX files
+1. **Global** (FlashcardApp): `npm run extract-flashcards` generates `src/data/flashcard-decks.ts` from 24 MDX files
 2. **Per-page** (PageFlashcards): Reads DOM tables at runtime, no pre-processing needed
 
 To add words to global flashcards: update MDX tables, then re-run the extraction script.
+
+### Page Summary (PageSummary.astro)
+
+Server-rendered Astro component (no client JS) showing a compact summary box at the top of each content page:
+- Word count badge, topic tags, in-page link to flashcard practice
+- Props: `wordCount` (number) and `topics` (string array)
+- Placed after `<DutchAudio />` and before intro text on all content pages
+
+### Connected Stories
+
+Cross-topic A2-B1 narratives at `src/content/docs/phrases/connected-stories.mdx`. Five stories deliberately weaving vocabulary from 3-4+ topic areas each. Different from Audio Stories (simple A1 routines) and Fun Stories (funny scenarios with grammar notes).
 
 ### Exam Practice (ExamPractice.astro)
 

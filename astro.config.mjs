@@ -39,6 +39,7 @@ export default defineConfig({
             { label: "Dialogues", slug: "phrases/dialogues" },
             { label: "Audio Stories", slug: "phrases/audio-stories" },
             { label: "Fun Stories", slug: "phrases/fun-stories" },
+            { label: "Connected Stories", slug: "phrases/connected-stories" },
           ],
         },
         {

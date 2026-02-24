@@ -1,9 +1,8 @@
 ---
 // PageFlashcards – Scans the current page's tables for Dutch vocabulary
-// and renders a mini flashcard practice section. Includes difficulty ratings
-// (Again/Hard/Easy), session summary with word breakdown, and links to
-// the global flashcard app.
-// Redesigned: top anchor bar, fixed 220px card, ratings inside card.
+// and renders a mini flashcard practice section. Stable DOM architecture:
+// builds skeleton once, wires events once, renderCard() does targeted updates.
+// Includes difficulty ratings, running tally, session summary.
 ---
 
 <page-flashcards id="page-flashcards"></page-flashcards>
@@ -36,12 +35,9 @@ function cleanText(cell: Element): string {
   clone.querySelectorAll("em").forEach(em => em.remove());
   clone.querySelectorAll(".dutch-audio-btn").forEach(btn => btn.remove());
   let text = clone.textContent?.trim() ?? "";
-  // Strip all parenthetical content containing letters (English translations)
   text = text.replace(/\s*\([^)]*[a-zA-Z][^)]*\)\s*/g, " ");
-  // Strip IPA in square brackets [hɔnt] and slashes /maːn/
   text = text.replace(/\[[^\]]*\]/g, "");
   text = text.replace(/\/[^/]+\//g, "");
-  // Strip arrow symbols (used in devoicing tables)
   text = text.replace(/\u2192/g, "");
   return text.replace(/\s+/g, " ").trim();
 }
@@ -86,8 +82,22 @@ class PageFlashcards extends HTMLElement {
   flipped = false;
   direction: Dir = "mixed";
   private _kh: ((e: KeyboardEvent) => void) | null = null;
-  /* session tracking: maps order index -> ease rating (1=again, 2=hard, 3=easy) */
   private sessionRatings: Map<number, number> = new Map();
+
+  /* DOM refs – set once in buildDOM() */
+  private setupEl!: HTMLElement;
+  private practiceEl!: HTMLElement;
+  private summaryEl!: HTMLElement;
+  private countEl!: HTMLElement;
+  private pfillEl!: HTMLElement;
+  private faceEl!: HTMLElement;
+  private hintEl!: HTMLElement;
+  private rateRowEl!: HTMLElement;
+  private prevEl!: HTMLButtonElement;
+  private keysEl!: HTMLElement;
+  private tallyEasyEl!: HTMLElement;
+  private tallyHardEl!: HTMLElement;
+  private tallyAgainEl!: HTMLElement;
 
   static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
 
@@ -95,11 +105,149 @@ class PageFlashcards extends HTMLElement {
     const init = () => {
       this.cards = extractCards();
       if (this.cards.length < 2) { this.style.display = "none"; return; }
-      this.renderAnchorAndWidget();
+      this.buildDOM();
     };
     if ("requestIdleCallback" in window) requestIdleCallback(init);
     else requestAnimationFrame(() => setTimeout(init, 0));
   }
+
+  /* ---- Build DOM skeleton once, wire all events once ---- */
+
+  private buildDOM() {
+    this.innerHTML = `
+      <div class="pf-widget" id="pf-setup">
+        <div class="pf-header-bar">
+          <span class="pf-header-title">Flashcards</span>
+          <span class="pf-header-count">${this.cards.length} cards</span>
+        </div>
+        <div class="pf-dir-row">
+          <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
+          <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
+          <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
+          <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
+        </div>
+        <button class="pf-start" id="pf-start" type="button">Start Practice</button>
+        <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
+      </div>
+
+      <div class="pf-widget" id="pf-practice" style="display:none">
+        <div class="pf-toolbar">
+          <button class="pf-tbtn" id="pf-close" type="button">Close</button>
+          <span class="pf-count" id="pf-count"></span>
+          <button class="pf-tbtn" id="pf-reshuffle" type="button">Shuffle</button>
+        </div>
+        <div class="pf-pbar"><div class="pf-pfill" id="pf-pfill"></div></div>
+        <div class="pf-tally" id="pf-tally">
+          <span class="pf-tb pf-tb-easy" id="pf-tally-easy"></span>
+          <span class="pf-tb pf-tb-hard" id="pf-tally-hard"></span>
+          <span class="pf-tb pf-tb-again" id="pf-tally-again"></span>
+        </div>
+        <div class="pf-card-row">
+          <button class="pf-nav" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
+          <div class="pf-card" id="pf-card">
+            <div class="pf-face" id="pf-face"></div>
+            <div class="pf-card-bottom">
+              <div class="pf-hint" id="pf-hint">Tap to reveal</div>
+              <div class="pf-rate-row" id="pf-rate-row">
+                <button class="pf-rate pf-rate-again" data-ease="1" type="button">Again</button>
+                <button class="pf-rate pf-rate-hard" data-ease="2" type="button">Hard</button>
+                <button class="pf-rate pf-rate-easy" data-ease="3" type="button">Easy</button>
+              </div>
+            </div>
+          </div>
+          <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
+        </div>
+        <div class="pf-keys" id="pf-keys"></div>
+      </div>
+
+      <div class="pf-widget" id="pf-summary" style="display:none"></div>`;
+
+    /* Cache DOM refs */
+    this.setupEl = this.querySelector("#pf-setup")!;
+    this.practiceEl = this.querySelector("#pf-practice")!;
+    this.summaryEl = this.querySelector("#pf-summary")!;
+    this.countEl = this.querySelector("#pf-count")!;
+    this.pfillEl = this.querySelector("#pf-pfill")!;
+    this.faceEl = this.querySelector("#pf-face")!;
+    this.hintEl = this.querySelector("#pf-hint")!;
+    this.rateRowEl = this.querySelector("#pf-rate-row")!;
+    this.prevEl = this.querySelector("#pf-prev") as HTMLButtonElement;
+    this.keysEl = this.querySelector("#pf-keys")!;
+    this.tallyEasyEl = this.querySelector("#pf-tally-easy")!;
+    this.tallyHardEl = this.querySelector("#pf-tally-hard")!;
+    this.tallyAgainEl = this.querySelector("#pf-tally-again")!;
+
+    /* ---- Wire events once ---- */
+
+    /* Direction buttons */
+    this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
+      b.addEventListener("click", () => {
+        this.direction = b.dataset.d as Dir;
+        this.querySelectorAll(".pf-dir").forEach(d => d.classList.toggle("pf-dir-on", d === b));
+      });
+    });
+
+    /* Start */
+    this.querySelector("#pf-start")!.addEventListener("click", () => this.start());
+
+    /* Close → back to setup */
+    this.querySelector("#pf-close")!.addEventListener("click", () => {
+      this.unbindKeys();
+      this.showScreen("setup");
+    });
+
+    /* Shuffle */
+    this.querySelector("#pf-reshuffle")!.addEventListener("click", () => this.reshuffle());
+
+    /* Card click → advance (skip audio/rate clicks) */
+    this.querySelector("#pf-card")!.addEventListener("click", (e) => {
+      if ((e.target as Element).closest(".dutch-audio-btn")) return;
+      if ((e.target as Element).closest(".pf-rate-row")) return;
+      this.advance();
+    });
+
+    /* Nav buttons */
+    this.querySelector("#pf-next")!.addEventListener("click", () => this.advance());
+    this.querySelector("#pf-prev")!.addEventListener("click", () => {
+      if (this.current > 0) { this.current--; this.flipped = false; this.renderCard(); }
+    });
+
+    /* Rate buttons – event delegation on the row */
+    this.rateRowEl.addEventListener("click", (e) => {
+      const btn = (e.target as Element).closest(".pf-rate") as HTMLButtonElement;
+      if (!btn) return;
+      e.stopPropagation();
+      const card = this.cards[this.order[this.current]];
+      const ease = Number(btn.dataset.ease);
+      this.rateToStorage(card, ease);
+      this.sessionRatings.set(this.current, ease);
+      this.current++;
+      this.flipped = false;
+      this.renderCard();
+    });
+
+    /* Summary clicks – event delegation */
+    this.summaryEl.addEventListener("click", (e) => {
+      const target = e.target as Element;
+      if (target.closest("#pf-close-sum")) { this.unbindKeys(); this.showScreen("setup"); }
+      else if (target.closest("#pf-restart")) this.start();
+      else if (target.closest("#pf-review-hard")) {
+        const btn = target.closest("#pf-review-hard") as HTMLElement;
+        const indices = JSON.parse(btn.dataset.cards || "[]");
+        if (indices.length) this.startWithCards(indices);
+      }
+    });
+  }
+
+  /* ---- Screen toggling ---- */
+
+  private showScreen(screen: "setup" | "practice" | "summary") {
+    this.setupEl.style.display = screen === "setup" ? "" : "none";
+    this.practiceEl.style.display = screen === "practice" ? "" : "none";
+    this.summaryEl.style.display = screen === "summary" ? "" : "none";
+  }
+
+  /* ---- Helpers ---- */
 
   shuffle(arr: number[]): number[] {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -179,50 +327,13 @@ class PageFlashcards extends HTMLElement {
     });
   }
 
-  /* Render anchor bar at top + full widget below */
-  renderAnchorAndWidget() {
-    this.unbindKeys();
-    this.innerHTML = `
-      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
-        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
-        <span class="pf-anchor-arrow">\u2193</span>
-      </a>
-      <div class="pf-widget" id="pf-widget">
-        <div class="pf-header-bar">
-          <span class="pf-header-title">Flashcards</span>
-          <span class="pf-header-count">${this.cards.length} cards</span>
-        </div>
-        <div class="pf-dir-row">
-          <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
-          <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
-          <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
-          <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
-        </div>
-        <button class="pf-start" id="pf-start" type="button">Start Practice</button>
-        <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
-      </div>`;
-
-    // Smooth scroll anchor
-    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
-      e.preventDefault();
-      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    // Direction buttons
-    this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
-      b.addEventListener("click", () => { this.direction = b.dataset.d as Dir; this.renderAnchorAndWidget(); });
-    });
-
-    // Start
-    this.querySelector("#pf-start")!.addEventListener("click", () => this.start());
-  }
-
   start() {
     this.buildOrder();
     this.current = 0;
     this.flipped = false;
     this.sessionRatings = new Map();
     this.bindKeys();
+    this.showScreen("practice");
     this.renderCard();
   }
 
@@ -237,6 +348,7 @@ class PageFlashcards extends HTMLElement {
     this.flipped = false;
     this.sessionRatings = new Map();
     this.bindKeys();
+    this.showScreen("practice");
     this.renderCard();
   }
 
@@ -244,8 +356,11 @@ class PageFlashcards extends HTMLElement {
     this.buildOrder();
     this.current = 0;
     this.flipped = false;
+    this.sessionRatings = new Map();
     this.renderCard();
   }
+
+  /* ---- Targeted card rendering (no full DOM rebuild) ---- */
 
   renderCard() {
     const total = this.order.length;
@@ -261,16 +376,57 @@ class PageFlashcards extends HTMLElement {
     const num = this.current + 1;
     const pct = Math.round((this.current / total) * 100);
 
-    /* Build card face content */
-    let faceHTML: string;
+    /* Counter & progress bar */
+    this.countEl.textContent = `${num}/${total}`;
+    this.pfillEl.style.width = `${pct}%`;
 
+    /* Prev button state */
+    this.prevEl.classList.toggle("pf-nav-off", this.current === 0);
+
+    /* Running tally */
+    let easyCount = 0, hardCount = 0, againCount = 0;
+    for (const [, rating] of this.sessionRatings) {
+      if (rating === 3) easyCount++;
+      else if (rating === 2) hardCount++;
+      else if (rating === 1) againCount++;
+    }
+    this.tallyEasyEl.textContent = `${easyCount} easy`;
+    this.tallyEasyEl.style.display = easyCount > 0 ? "" : "none";
+    this.tallyHardEl.textContent = `${hardCount} hard`;
+    this.tallyHardEl.style.display = hardCount > 0 ? "" : "none";
+    this.tallyAgainEl.textContent = `${againCount} again`;
+    this.tallyAgainEl.style.display = againCount > 0 ? "" : "none";
+
+    /* Card face (only this inner area is rebuilt) */
+    this.faceEl.innerHTML = this.buildFaceHTML(card, dutch, isListen);
+
+    /* Toggle hint / rate-row */
+    if (this.flipped) {
+      this.hintEl.style.display = "none";
+      this.rateRowEl.style.visibility = "visible";
+    } else {
+      this.hintEl.style.display = "";
+      this.rateRowEl.style.visibility = "hidden";
+    }
+
+    /* Keyboard hints */
+    this.keysEl.innerHTML = `&larr; Prev &nbsp; Space/Enter &nbsp; Next &rarr;${this.flipped ? " &nbsp; 1-2-3" : ""}`;
+
+    /* Auto-play in Listen mode */
     if (isListen && !this.flipped) {
-      faceHTML = `
+      setTimeout(() => speakDutch(card.dutch), 150);
+    }
+  }
+
+  private buildFaceHTML(card: Card, dutch: boolean, isListen: boolean): string {
+    if (isListen && !this.flipped) {
+      return `
         <div class="pf-badge">LISTEN</div>
         <button class="dutch-audio-btn pf-audio pf-audio-big" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
         <div class="pf-listen-q">?</div>`;
-    } else if (isListen && this.flipped) {
-      faceHTML = `
+    }
+    if (isListen && this.flipped) {
+      return `
         <div class="pf-badge">NL</div>
         <div class="pf-word">${this.esc(card.dutch)}</div>
         ${card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : ""}
@@ -278,107 +434,35 @@ class PageFlashcards extends HTMLElement {
         <div class="pf-divider"></div>
         <div class="pf-badge pf-badge-ans">EN</div>
         <div class="pf-answer">${this.esc(card.english)}</div>`;
-    } else {
-      const frontWord = dutch ? card.dutch : card.english;
-      const frontIPA = dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
-      const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
-      const fLabel = dutch ? "NL" : "EN";
+    }
 
+    const frontWord = dutch ? card.dutch : card.english;
+    const frontIPA = dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
+    const frontAudio = dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
+    const fLabel = dutch ? "NL" : "EN";
+
+    let html = `
+      <div class="pf-badge">${fLabel}</div>
+      <div class="pf-word">${this.esc(frontWord)}</div>
+      ${frontIPA}
+      ${frontAudio}`;
+
+    if (this.flipped) {
       const backWord = dutch ? card.english : card.dutch;
       const backIPA = !dutch && card.ipa ? `<div class="pf-ipa">${this.esc(card.ipa)}</div>` : "";
       const backAudio = !dutch ? `<button class="dutch-audio-btn pf-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>` : "";
       const bLabel = dutch ? "EN" : "NL";
-
-      faceHTML = `
-        <div class="pf-badge">${fLabel}</div>
-        <div class="pf-word">${this.esc(frontWord)}</div>
-        ${frontIPA}
-        ${frontAudio}
-        ${this.flipped ? `
-          <div class="pf-divider"></div>
-          <div class="pf-badge pf-badge-ans">${bLabel}</div>
-          <div class="pf-answer">${this.esc(backWord)}</div>
-          ${backIPA}
-          ${backAudio}
-        ` : ""}`;
+      html += `
+        <div class="pf-divider"></div>
+        <div class="pf-badge pf-badge-ans">${bLabel}</div>
+        <div class="pf-answer">${this.esc(backWord)}</div>
+        ${backIPA}
+        ${backAudio}`;
     }
-
-    /* Bottom zone: ratings inside card or hint */
-    let bottomHTML: string;
-    if (this.flipped) {
-      bottomHTML = `
-        <div class="pf-rate-row">
-          <button class="pf-rate pf-rate-again" data-ease="1" type="button">Again</button>
-          <button class="pf-rate pf-rate-hard" data-ease="2" type="button">Hard</button>
-          <button class="pf-rate pf-rate-easy" data-ease="3" type="button">Easy</button>
-        </div>`;
-    } else {
-      bottomHTML = `<div class="pf-hint">Tap to reveal</div>`;
-    }
-
-    /* Keep anchor at top */
-    this.innerHTML = `
-      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
-        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
-        <span class="pf-anchor-arrow">\u2193</span>
-      </a>
-      <div class="pf-widget" id="pf-widget">
-        <div class="pf-toolbar">
-          <button class="pf-tbtn" id="pf-close" type="button">Close</button>
-          <span class="pf-count">${num}/${total}</span>
-          <button class="pf-tbtn" id="pf-reshuffle" type="button">Shuffle</button>
-        </div>
-        <div class="pf-pbar"><div class="pf-pfill" style="width:${pct}%"></div></div>
-
-        <div class="pf-card-row">
-          <button class="pf-nav ${this.current === 0 ? "pf-nav-off" : ""}" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
-          <div class="pf-card" id="pf-card">
-            <div class="pf-face">${faceHTML}</div>
-            <div class="pf-card-bottom">${bottomHTML}</div>
-          </div>
-          <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
-        </div>
-
-        <div class="pf-keys">&larr; Prev &nbsp; Space/Enter &nbsp; Next &rarr;${this.flipped ? " &nbsp; 1-2-3" : ""}</div>
-      </div>`;
-
-    // Smooth scroll anchor
-    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
-      e.preventDefault();
-      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    this.querySelector("#pf-next")!.addEventListener("click", () => this.advance());
-    this.querySelector("#pf-prev")!.addEventListener("click", () => {
-      if (this.current > 0) { this.current--; this.flipped = false; this.renderCard(); }
-    });
-    this.querySelector("#pf-card")!.addEventListener("click", (e) => {
-      if ((e.target as Element).closest(".dutch-audio-btn")) return;
-      if ((e.target as Element).closest(".pf-rate-row")) return;
-      this.advance();
-    });
-    this.querySelector("#pf-close")!.addEventListener("click", () => { this.unbindKeys(); this.renderAnchorAndWidget(); });
-    this.querySelector("#pf-reshuffle")!.addEventListener("click", () => this.reshuffle());
-
-    // Wire up rating buttons
-    this.querySelectorAll<HTMLButtonElement>(".pf-rate").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const card = this.cards[this.order[this.current]];
-        const ease = Number(btn.dataset.ease);
-        this.rateToStorage(card, ease);
-        this.sessionRatings.set(this.current, ease);
-        this.current++;
-        this.flipped = false;
-        this.renderCard();
-      });
-    });
-
-    // Auto-play in Listen mode
-    if (isListen && !this.flipped) {
-      setTimeout(() => speakDutch(card.dutch), 150);
-    }
+    return html;
   }
+
+  /* ---- Summary (rebuilt once at end of session) ---- */
 
   renderSummary() {
     this.unbindKeys();
@@ -413,54 +497,32 @@ class PageFlashcards extends HTMLElement {
       </tr>`;
     }).join("");
 
-    this.innerHTML = `
-      <a class="pf-anchor" href="#pf-widget" id="pf-anchor-link">
-        <span class="pf-anchor-text">Practice ${this.cards.length} cards</span>
-        <span class="pf-anchor-arrow">\u2193</span>
-      </a>
-      <div class="pf-widget" id="pf-widget">
-        <div class="pf-sum">
-          <div class="pf-sum-top">
-            <span class="pf-sum-title">Done!</span>
-            <span class="pf-sum-sub">${total} cards reviewed</span>
-          </div>
-
-          <div class="pf-sum-badges">
-            <span class="pf-sb pf-sb-easy">${easyCount} easy</span>
-            <span class="pf-sb pf-sb-hard">${hardCount} hard</span>
-            <span class="pf-sb pf-sb-again">${againCount} again</span>
-          </div>
-
-          <div class="pf-sum-actions">
-            ${hardCards.length > 0 ? `<button class="pf-btn-pri" id="pf-review-hard" type="button">Review ${hardCards.length} Hard</button>` : ""}
-            <button class="pf-btn-sec" id="pf-restart" type="button">Restart</button>
-            <button class="pf-btn-sec" id="pf-close" type="button">Close</button>
-          </div>
-
-          <div class="pf-sum-table-wrap">
-            <table class="pf-sum-table">
-              <thead><tr><th>Dutch</th><th>English</th><th></th></tr></thead>
-              <tbody>${summaryRows}</tbody>
-            </table>
-          </div>
-
-          <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
+    this.summaryEl.innerHTML = `
+      <div class="pf-sum">
+        <div class="pf-sum-top">
+          <span class="pf-sum-title">Done!</span>
+          <span class="pf-sum-sub">${total} cards reviewed</span>
         </div>
+        <div class="pf-sum-badges">
+          <span class="pf-sb pf-sb-easy">${easyCount} easy</span>
+          <span class="pf-sb pf-sb-hard">${hardCount} hard</span>
+          <span class="pf-sb pf-sb-again">${againCount} again</span>
+        </div>
+        <div class="pf-sum-actions">
+          ${hardCards.length > 0 ? `<button class="pf-btn-pri" id="pf-review-hard" data-cards="${this.esc(JSON.stringify(hardCards))}" type="button">Review ${hardCards.length} Hard</button>` : ""}
+          <button class="pf-btn-sec" id="pf-restart" type="button">Restart</button>
+          <button class="pf-btn-sec" id="pf-close-sum" type="button">Close</button>
+        </div>
+        <div class="pf-sum-table-wrap">
+          <table class="pf-sum-table">
+            <thead><tr><th>Dutch</th><th>English</th><th></th></tr></thead>
+            <tbody>${summaryRows}</tbody>
+          </table>
+        </div>
+        <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
       </div>`;
 
-    // Smooth scroll anchor
-    this.querySelector("#pf-anchor-link")!.addEventListener("click", (e) => {
-      e.preventDefault();
-      this.querySelector("#pf-widget")!.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    this.querySelector("#pf-close")!.addEventListener("click", () => this.renderAnchorAndWidget());
-    this.querySelector("#pf-restart")!.addEventListener("click", () => this.start());
-
-    const reviewBtn = this.querySelector("#pf-review-hard");
-    if (reviewBtn) {
-      reviewBtn.addEventListener("click", () => this.startWithCards(hardCards));
-    }
+    this.showScreen("summary");
   }
 }
 
@@ -468,43 +530,10 @@ customElements.define("page-flashcards", PageFlashcards);
 </script>
 
 <style>
-  /* ========== Anchor bar (top of component, always visible) ========== */
-  .pf-anchor {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    margin: 1.5rem auto 0;
-    max-width: 540px;
-    border: 1px solid var(--sl-color-accent);
-    border-radius: 999rem;
-    background: var(--sl-color-accent-low);
-    color: var(--sl-color-text-accent);
-    text-decoration: none;
-    font-size: var(--sl-text-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
-  }
-  .pf-anchor:hover {
-    background-color: var(--sl-color-text-accent);
-    color: var(--sl-color-black);
-    border-color: var(--sl-color-text-accent);
-  }
-  .pf-anchor:hover .pf-anchor-arrow { color: var(--sl-color-black); }
-  .pf-anchor-arrow {
-    font-size: 1rem;
-    line-height: 1;
-    transition: transform 0.2s, color 0.15s;
-    color: var(--sl-color-text-accent);
-  }
-  .pf-anchor:hover .pf-anchor-arrow { transform: translateY(2px); }
-
   /* ========== Widget container ========== */
   .pf-widget {
     max-width: 540px;
-    margin: 1rem auto 0;
+    margin: 1.5rem auto 0;
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.5rem;
     padding: 1rem;
@@ -578,8 +607,15 @@ customElements.define("page-flashcards", PageFlashcards);
   .pf-count { font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); font-variant-numeric: tabular-nums; }
 
   /* Progress bar */
-  .pf-pbar { width: 100%; height: 3px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 0.6rem; overflow: hidden; }
+  .pf-pbar { width: 100%; height: 3px; border-radius: 2px; background: var(--sl-color-gray-5); margin-bottom: 0.4rem; overflow: hidden; }
   .pf-pfill { height: 100%; border-radius: 2px; background: var(--sl-color-accent); transition: width 0.3s ease; }
+
+  /* Running tally */
+  .pf-tally { display: flex; gap: 0.3rem; justify-content: center; margin-bottom: 0.4rem; min-height: 1.2rem; }
+  .pf-tb { font-size: var(--sl-text-2xs); font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999rem; }
+  .pf-tb-easy { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  .pf-tb-hard { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+  .pf-tb-again { color: #f87171; background: rgba(248, 113, 113, 0.12); }
 
   /* Card row */
   .pf-card-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem; }
@@ -633,13 +669,15 @@ customElements.define("page-flashcards", PageFlashcards);
     overflow-y: auto;
   }
 
-  /* Bottom: rating or hint pinned to card bottom */
+  /* Bottom: hint & rate-row stacked via grid, rate-row always reserves space */
   .pf-card-bottom {
     flex-shrink: 0;
     padding: 0 0.75rem 0.6rem;
-    display: flex;
-    justify-content: center;
+    display: grid;
+    place-items: center;
   }
+  .pf-card-bottom > * { grid-area: 1 / 1; }
+  .pf-rate-row { visibility: hidden; display: flex; gap: 0.35rem; z-index: 1; }
 
   /* Card elements */
   .pf-badge {
@@ -681,11 +719,10 @@ customElements.define("page-flashcards", PageFlashcards);
   .pf-listen-q { font-size: 1.75rem; font-weight: 700; color: var(--sl-color-gray-3); margin-top: 0.25rem; }
 
   /* Hint */
-  .pf-hint { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-style: italic; }
+  .pf-hint { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-style: italic; z-index: 0; }
   .pf-keys { text-align: center; font-size: var(--sl-text-2xs); color: var(--sl-color-gray-3); margin-top: 0.15rem; }
 
-  /* Rating buttons inside card */
-  .pf-rate-row { display: flex; gap: 0.35rem; }
+  /* Rating buttons */
   .pf-rate {
     padding: 0.25rem 0.75rem;
     border-radius: 999rem;
@@ -779,7 +816,7 @@ customElements.define("page-flashcards", PageFlashcards);
   /* Focus styles */
   .pf-rate:focus-visible, .pf-tbtn:focus-visible, .pf-nav:focus-visible,
   .pf-dir:focus-visible, .pf-start:focus-visible, .pf-audio:focus-visible,
-  .pf-btn-pri:focus-visible, .pf-btn-sec:focus-visible, .pf-anchor:focus-visible {
+  .pf-btn-pri:focus-visible, .pf-btn-sec:focus-visible {
     outline: 2px solid var(--sl-color-text-accent);
     outline-offset: 2px;
   }
@@ -800,6 +837,5 @@ customElements.define("page-flashcards", PageFlashcards);
     .pf-rate { min-height: 44px; padding: 0.4rem 0.75rem; }
     .pf-tbtn { min-height: 36px; }
     .pf-btn-pri, .pf-btn-sec { min-height: 44px; }
-    .pf-anchor { min-height: 44px; }
   }
 </style>

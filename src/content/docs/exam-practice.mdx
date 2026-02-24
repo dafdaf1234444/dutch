@@ -6,8 +6,10 @@ description: Practice questions modeled on the Dutch inburgeringsexamen and NT2 
 import DutchAudio from '@components/DutchAudio.astro';
 import ExamPractice from '@components/ExamPractice.astro';
 import PageFlashcards from '@components/PageFlashcards.astro';
+import PageSummary from '@components/PageSummary.astro';
 
 <DutchAudio />
+<PageSummary wordCount={6} topics={["Exam Prep", "Inburgeringsexamen", "NT2"]} />
 
 Practice questions inspired by the Dutch civic integration exam (*inburgeringsexamen*) and NT2 *Staatsexamen*. These cover reading comprehension, grammar, vocabulary, and Knowledge of Dutch Society (KNM). Select your answer and click **Check Answers** for instant feedback.
 
