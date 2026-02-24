@@ -72,7 +72,9 @@ import PageFlashcards from '@components/PageFlashcards.astro';
 
 ### Audio System (DutchAudio.astro)
 
-Auto-injects speaker buttons into table cells and blockquote dialogues using Web Speech API (`nl-NL`, rate 0.9).
+Auto-injects speaker buttons into table cells and blockquote dialogues using Web Speech API.
+
+**Voice selection:** `dutch-speech.ts` explicitly finds a Dutch voice via `speechSynthesis.getVoices()` with priority chain: `nl-NL` → `nl-BE` → `nl` → name contains "dutch"/"nederland". Handles async voice loading via `voiceschanged` event + polling fallback. Sets both `utter.lang` AND `utter.voice`.
 
 **Recognized table headers** (case-insensitive):
 `dutch`, `dutch word`, `dutch expression`, `dutch phrase`, `example`, `example sentence`, `example sentences`, `dialogue`, `infinitive`, `word`, `diminutive`, `singular`, `plural`, `original`, `conjugation`, `stem`, `correct stem`, `statement`, `question`, `inversion`, `ik`, `jij`, `hij/zij/het`, `wij`, `sentence`, `base verb`, `prefix`, `normal`, `inverted (question)`, `example question`, `example answer`, `tag`, `name`, `spelling`
@@ -83,7 +85,15 @@ Auto-injects speaker buttons into table cells and blockquote dialogues using Web
 > **Mark:** Goed, dank je. *(Good, thank you.)*
 ```
 
-English in `*(italics)*` or `(parentheses)` is stripped before speaking.
+**English text stripping:** Before speaking, the system strips:
+- `<em>` elements (English translations in italics like `*(Hello!)*`)
+- ALL parenthetical content containing ASCII letters (e.g., `(man)`, `(hello)`, `(to walk)`)
+- IPA in slashes `/…/` and square brackets `[…]`
+- Arrow symbols `→`
+
+**Mobile:** Touch targets enlarge to 44px minimum on coarse-pointer (mobile) devices via `@media (pointer: coarse)`.
+
+**Base path:** The site deploys to `/dutch/`. All internal links in MDX content must use the `/dutch/` prefix (e.g., `[link](/dutch/grammar/word-order/)`). Starlight handles sidebar links automatically but manually written markdown links need the prefix.
 
 ### IPA Coverage
 
