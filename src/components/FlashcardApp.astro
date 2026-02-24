@@ -757,4 +757,22 @@ customElements.define("flashcard-app", FlashcardApp);
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
   }
+
+  /* Mobile responsiveness */
+  @media (max-width: 480px) {
+    .fc-word { font-size: 1.4rem; }
+    .fc-answer { font-size: 1.15rem; }
+    .fc-card { padding: 1.5rem 1rem; min-height: 170px; }
+    .fc-nav { width: 36px; height: 70px; font-size: 1.3rem; }
+    .fc-shortcut-hint { display: none; }
+    .fc-topic-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  }
+  @media (pointer: coarse) {
+    .fc-nav { min-width: 44px; min-height: 44px; }
+    .fc-btn { min-height: 44px; }
+    .fc-dir-btn { min-height: 40px; padding: 0.5rem 1rem; }
+    .fc-rate-btn { min-height: 44px; padding: 0.5rem 1.2rem; }
+    .fc-fav-btn { min-width: 44px; min-height: 44px; }
+    .fc-audio-btn { min-width: 44px; min-height: 44px; }
+  }
 </style>

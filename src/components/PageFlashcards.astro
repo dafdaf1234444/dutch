@@ -165,7 +165,7 @@ class PageFlashcards extends HTMLElement {
           <button class="pf-start-btn" id="pf-start" type="button">
             Start Practice
           </button>
-          <div class="pf-fc-link"><a href="/flashcards/">Practice all topics &rarr;</a></div>
+          <div class="pf-fc-link"><a href="/dutch/flashcards/">Practice all topics &rarr;</a></div>
         </div>
       </div>`;
     this.querySelectorAll<HTMLButtonElement>(".pf-dir").forEach(b => {
@@ -281,7 +281,7 @@ class PageFlashcards extends HTMLElement {
         </div>
 
         <div class="pf-key-hint">&larr; Prev &nbsp; Space / Enter &nbsp; Next &rarr;</div>
-        <div class="pf-fc-link"><a href="/flashcards/">Practice all topics &rarr;</a></div>
+        <div class="pf-fc-link"><a href="/dutch/flashcards/">Practice all topics &rarr;</a></div>
       </div>`;
 
     this.querySelector("#pf-next")!.addEventListener("click", () => this.advance());
@@ -432,4 +432,20 @@ customElements.define("page-flashcards", PageFlashcards);
     font-size: var(--sl-text-xs); color: var(--sl-color-text-accent); text-decoration: none; font-weight: 600;
   }
   .pf-fc-link a:hover { text-decoration: underline; }
+
+  /* Mobile responsiveness */
+  @media (max-width: 480px) {
+    .pf-word { font-size: 1.25rem; }
+    .pf-answer { font-size: 1.05rem; }
+    .pf-card { padding: 1.25rem 0.75rem; min-height: 140px; }
+    .pf-nav { width: 30px; height: 60px; }
+    .pf-key-hint { display: none; }
+  }
+  @media (pointer: coarse) {
+    .pf-nav { min-width: 44px; min-height: 44px; }
+    .pf-btn { min-height: 44px; }
+    .pf-dir { min-height: 40px; padding: 0.5rem 0.8rem; }
+    .pf-start-btn { min-height: 48px; }
+    .pf-audio { min-width: 44px; min-height: 44px; padding: 8px; }
+  }
 </style>

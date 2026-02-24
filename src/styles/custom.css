@@ -8,10 +8,13 @@
   border-radius: 50%;
   cursor: pointer;
   padding: 3px;
+  min-width: 28px;
+  min-height: 28px;
   color: var(--sl-color-gray-3);
   vertical-align: middle;
   margin-left: 0.35em;
   transition: color 0.15s, background-color 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 .dutch-audio-btn:hover {
   color: var(--sl-color-text-accent);
@@ -21,6 +24,19 @@
 .dutch-audio-btn:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
   outline-offset: 2px;
+}
+
+/* Mobile: larger touch targets */
+@media (pointer: coarse) {
+  .dutch-audio-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+  .dutch-audio-btn svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 @keyframes pulse-speak {
   0%, 100% { opacity: 1; }
@@ -286,6 +302,26 @@ tr.audio-row-active {
 .ap-transport-btn:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
   outline-offset: 2px;
+}
+
+/* Mobile: larger audio panel buttons */
+@media (pointer: coarse) {
+  .ap-play-btn, .ap-stop-btn, .ap-transport-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9em;
+    min-height: 44px;
+  }
+  .ap-mode-btn, .ap-select-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82em;
+    min-height: 40px;
+  }
+  .audio-panel-transport {
+    gap: 0.5rem;
+  }
+  .ap-speed-slider {
+    height: 32px;
+  }
 }
 
 /* Now playing bar */

@@ -26,10 +26,20 @@ const { text } = Astro.props;
     border-radius: 50%;
     cursor: pointer;
     padding: 3px;
+    min-width: 28px;
+    min-height: 28px;
     color: var(--sl-color-gray-3);
     vertical-align: middle;
     margin-left: 0.25em;
     transition: color 0.15s, background-color 0.15s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (pointer: coarse) {
+    .say-btn {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 8px;
+    }
   }
   .say-btn:hover {
     color: var(--sl-color-text-accent);
