@@ -57,6 +57,12 @@
     text = text.replace(/\/[^/]+\//g, "");
     // Strip arrow symbols (used in devoicing tables)
     text = text.replace(/→/g, "");
+    // Strip remaining forward slashes between alternatives (hij/zij, zult / zal)
+    // Note: IPA in /slashes/ is already removed above
+    text = text.replace(/\s*\/\s*/g, " ");
+    // Strip dashes used as separators (ha - uu - ie - es)
+    text = text.replace(/\s*[–—]\s*/g, " ");
+    text = text.replace(/\s+-\s+/g, " ");
     return text.replace(/\s+/g, " ").trim();
   }
 
