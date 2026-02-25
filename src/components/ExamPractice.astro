@@ -107,7 +107,7 @@ class ExamPracticeEl extends HTMLElement {
             feedback.innerHTML = `<span class="exam-correct">&#10003; Correct</span>`;
           } else {
             input.classList.add("exam-input-wrong");
-            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${answer.split("|")[0]}</strong></span>`;
+            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${this.escHTML(answer.split("|")[0])}</strong></span>`;
           }
           feedback.style.display = "block";
         });
@@ -151,7 +151,7 @@ class ExamPracticeEl extends HTMLElement {
             feedback.innerHTML = `<span class="exam-correct">&#10003; Correct</span>`;
           } else {
             input.classList.add("exam-input-wrong");
-            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${answer.split("|")[0]}</strong></span>`;
+            feedback.innerHTML = `<span class="exam-wrong">&#10007; Answer: <strong>${this.escHTML(answer.split("|")[0])}</strong></span>`;
           }
           feedback.style.display = "block";
         });
@@ -164,6 +164,10 @@ class ExamPracticeEl extends HTMLElement {
         this.saveScore(sectionId, correct, total);
       });
     });
+  }
+
+  private escHTML(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   private normalize(s: string): string {

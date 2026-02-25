@@ -4,9 +4,13 @@ description: See Dutch grammar rules come alive with color-coded sentence analys
 ---
 
 import DutchAudio from '@components/DutchAudio.astro';
+import PageFlashcards from '@components/PageFlashcards.astro';
+import PageSummary from '@components/PageSummary.astro';
 import Say from '@components/Say.astro';
 
 <DutchAudio />
+<PageSummary wordCount={20} topics={["V2 Rule", "Time-Manner-Place", "Subordinate Clauses", "Negation"]} />
+<PageFlashcards />
 
 This page shows how Dutch grammar rules work in real sentences. Each word or phrase is color-coded by its grammatical role so you can see the patterns at a glance.
 
