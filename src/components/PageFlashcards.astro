@@ -1,8 +1,9 @@
 ---
 // PageFlashcards – Scans the current page's tables for Dutch vocabulary
-// and renders a mini flashcard practice section. Stable DOM architecture:
-// builds skeleton once, wires events once, renderCard() does targeted updates.
-// Includes difficulty ratings, running tally, session summary.
+// and renders two collapsible sections: Practice Flashcards + Word Review.
+// Stable DOM architecture: builds skeleton once, wires events once,
+// renderCard() does targeted updates. Word Review reads localStorage
+// and sorts by difficulty (Again → Hard → Unseen → Easy).
 ---
 
 <page-flashcards id="page-flashcards"></page-flashcards>
@@ -98,6 +99,7 @@ class PageFlashcards extends HTMLElement {
   private tallyEasyEl!: HTMLElement;
   private tallyHardEl!: HTMLElement;
   private tallyAgainEl!: HTMLElement;
+  private reviewBodyEl!: HTMLElement;
 
   static SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
 
@@ -115,52 +117,73 @@ class PageFlashcards extends HTMLElement {
 
   private buildDOM() {
     this.innerHTML = `
-      <div class="pf-widget" id="pf-setup">
-        <div class="pf-header-bar">
-          <span class="pf-header-title">Flashcards</span>
-          <span class="pf-header-count">${this.cards.length} cards</span>
-        </div>
-        <div class="pf-dir-row">
-          <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
-          <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
-          <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
-          <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
-        </div>
-        <button class="pf-start" id="pf-start" type="button">Start Practice</button>
-        <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
-      </div>
-
-      <div class="pf-widget" id="pf-practice" style="display:none">
-        <div class="pf-toolbar">
-          <button class="pf-tbtn" id="pf-close" type="button">Close</button>
-          <span class="pf-count" id="pf-count"></span>
-          <button class="pf-tbtn" id="pf-reshuffle" type="button">Shuffle</button>
-        </div>
-        <div class="pf-pbar"><div class="pf-pfill" id="pf-pfill"></div></div>
-        <div class="pf-tally" id="pf-tally">
-          <span class="pf-tb pf-tb-easy" id="pf-tally-easy"></span>
-          <span class="pf-tb pf-tb-hard" id="pf-tally-hard"></span>
-          <span class="pf-tb pf-tb-again" id="pf-tally-again"></span>
-        </div>
-        <div class="pf-card-row">
-          <button class="pf-nav" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
-          <div class="pf-card" id="pf-card">
-            <div class="pf-face" id="pf-face"></div>
-            <div class="pf-card-bottom">
-              <div class="pf-hint" id="pf-hint">Tap to reveal</div>
-              <div class="pf-rate-row" id="pf-rate-row">
-                <button class="pf-rate pf-rate-again" data-ease="1" type="button">Again</button>
-                <button class="pf-rate pf-rate-hard" data-ease="2" type="button">Hard</button>
-                <button class="pf-rate pf-rate-easy" data-ease="3" type="button">Easy</button>
+      <div class="pf-container">
+        <details class="pf-details" id="pf-details-practice">
+          <summary class="pf-summary">
+            <span class="pf-summary-text">Practice Flashcards</span>
+            <span class="pf-summary-count">${this.cards.length} cards</span>
+          </summary>
+          <div class="pf-details-body">
+            <div id="pf-setup">
+              <div class="pf-dir-row">
+                <button class="pf-dir ${this.direction === "nl-en" ? "pf-dir-on" : ""}" data-d="nl-en" type="button">NL\u2192EN</button>
+                <button class="pf-dir ${this.direction === "en-nl" ? "pf-dir-on" : ""}" data-d="en-nl" type="button">EN\u2192NL</button>
+                <button class="pf-dir ${this.direction === "mixed" ? "pf-dir-on" : ""}" data-d="mixed" type="button">Mixed</button>
+                <button class="pf-dir ${this.direction === "listen" ? "pf-dir-on" : ""}" data-d="listen" type="button">Listen</button>
               </div>
+              <button class="pf-start" id="pf-start" type="button">Start Practice</button>
+              <div class="pf-link"><a href="/dutch/flashcards/">Practice all topics \u2192</a></div>
+            </div>
+
+            <div id="pf-practice" style="display:none">
+              <div class="pf-toolbar">
+                <button class="pf-tbtn" id="pf-close" type="button">Close</button>
+                <span class="pf-count" id="pf-count"></span>
+                <button class="pf-tbtn" id="pf-reshuffle" type="button">Shuffle</button>
+              </div>
+              <div class="pf-pbar"><div class="pf-pfill" id="pf-pfill"></div></div>
+              <div class="pf-tally" id="pf-tally">
+                <span class="pf-tb pf-tb-easy" id="pf-tally-easy"></span>
+                <span class="pf-tb pf-tb-hard" id="pf-tally-hard"></span>
+                <span class="pf-tb pf-tb-again" id="pf-tally-again"></span>
+              </div>
+              <div class="pf-card-row">
+                <button class="pf-nav" id="pf-prev" type="button" aria-label="Previous">&#8249;</button>
+                <div class="pf-card" id="pf-card">
+                  <div class="pf-face" id="pf-face"></div>
+                  <div class="pf-card-bottom">
+                    <div class="pf-hint" id="pf-hint">Tap to reveal</div>
+                    <div class="pf-rate-row" id="pf-rate-row">
+                      <button class="pf-rate pf-rate-again" data-ease="1" type="button">Again</button>
+                      <button class="pf-rate pf-rate-hard" data-ease="2" type="button">Hard</button>
+                      <button class="pf-rate pf-rate-easy" data-ease="3" type="button">Easy</button>
+                    </div>
+                  </div>
+                </div>
+                <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
+              </div>
+              <div class="pf-keys" id="pf-keys"></div>
+            </div>
+
+            <div id="pf-summary" style="display:none"></div>
+          </div>
+        </details>
+
+        <details class="pf-details" id="pf-details-review">
+          <summary class="pf-summary">
+            <span class="pf-summary-text">Word Review</span>
+            <span class="pf-summary-count">${this.cards.length} words</span>
+          </summary>
+          <div class="pf-details-body">
+            <div class="pf-review-wrap">
+              <table class="pf-review-table">
+                <thead><tr><th>Dutch</th><th>English</th><th></th></tr></thead>
+                <tbody id="pf-review-body"></tbody>
+              </table>
             </div>
           </div>
-          <button class="pf-nav" id="pf-next" type="button" aria-label="Next">&#8250;</button>
-        </div>
-        <div class="pf-keys" id="pf-keys"></div>
-      </div>
-
-      <div class="pf-widget" id="pf-summary" style="display:none"></div>`;
+        </details>
+      </div>`;
 
     /* Cache DOM refs */
     this.setupEl = this.querySelector("#pf-setup")!;
@@ -176,6 +199,7 @@ class PageFlashcards extends HTMLElement {
     this.tallyEasyEl = this.querySelector("#pf-tally-easy")!;
     this.tallyHardEl = this.querySelector("#pf-tally-hard")!;
     this.tallyAgainEl = this.querySelector("#pf-tally-again")!;
+    this.reviewBodyEl = this.querySelector("#pf-review-body")!;
 
     /* ---- Wire events once ---- */
 
@@ -236,6 +260,17 @@ class PageFlashcards extends HTMLElement {
         const indices = JSON.parse(btn.dataset.cards || "[]");
         if (indices.length) this.startWithCards(indices);
       }
+    });
+
+    /* Word Review: refresh on toggle open */
+    this.querySelector("#pf-details-review")!.addEventListener("toggle", (e) => {
+      if ((e.target as HTMLDetailsElement).open) this.renderWordReview();
+    });
+
+    /* Word Review: audio button delegation */
+    this.reviewBodyEl.addEventListener("click", (e) => {
+      const btn = (e.target as Element).closest(".pf-rv-audio") as HTMLElement;
+      if (btn) speakDutch(btn.dataset.text || "");
     });
   }
 
@@ -462,6 +497,43 @@ class PageFlashcards extends HTMLElement {
     return html;
   }
 
+  /* ---- Word Review ---- */
+
+  private renderWordReview() {
+    let storageCards: Record<string, { ease: number }> = {};
+    try {
+      const raw = localStorage.getItem(FC_STORAGE_KEY);
+      if (raw) storageCards = JSON.parse(raw).cards ?? {};
+    } catch { /* localStorage unavailable */ }
+
+    /* Sort order: Again(1) → Hard(2) → Unseen(0) → Easy(3) */
+    const sortKey = (ease: number) => {
+      if (ease === 1) return 0; // Again first
+      if (ease === 2) return 1; // Hard
+      if (ease === 0) return 2; // Unseen
+      return 3;                 // Easy last
+    };
+
+    const sorted = this.cards
+      .map((c, i) => ({ card: c, idx: i, ease: storageCards[c.dutch.toLowerCase()]?.ease ?? 0 }))
+      .sort((a, b) => sortKey(a.ease) - sortKey(b.ease));
+
+    this.reviewBodyEl.innerHTML = sorted.map(({ card, ease }) => {
+      let label = "Unseen", cls = "pf-rv-unseen";
+      if (ease === 1) { label = "Again"; cls = "pf-rv-again"; }
+      else if (ease === 2) { label = "Hard"; cls = "pf-rv-hard"; }
+      else if (ease === 3) { label = "Easy"; cls = "pf-rv-easy"; }
+      return `<tr class="${cls}">
+        <td class="pf-rv-nl">
+          <button class="pf-rv-audio" data-text="${this.esc(card.dutch)}" type="button" aria-label="Listen">${PageFlashcards.SVG}</button>
+          ${this.esc(card.dutch)}
+        </td>
+        <td class="pf-rv-en">${this.esc(card.english)}</td>
+        <td class="pf-rv-badge"><span class="pf-rv-tag">${label}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
   /* ---- Summary (rebuilt once at end of session) ---- */
 
   renderSummary() {
@@ -530,34 +602,63 @@ customElements.define("page-flashcards", PageFlashcards);
 </script>
 
 <style>
-  /* ========== Widget container ========== */
-  .pf-widget {
+  /* ========== Container ========== */
+  .pf-container {
     max-width: 540px;
-    margin: 1.5rem auto 0;
+    margin: 1rem auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* ========== Collapsible details ========== */
+  .pf-details {
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.5rem;
-    padding: 1rem;
     background: var(--sl-color-bg-nav);
     box-shadow: var(--sl-shadow-sm);
   }
-
-  /* Header bar */
-  .pf-header-bar {
+  .pf-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
-  }
-  .pf-header-title {
-    font-size: var(--sl-text-base);
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    font-size: var(--sl-text-sm);
     font-weight: 700;
     color: var(--sl-color-white);
+    list-style: none;
+    user-select: none;
   }
-  .pf-header-count {
-    font-size: var(--sl-text-2xs);
+  .pf-summary::-webkit-details-marker { display: none; }
+  .pf-summary::before {
+    content: "\25B6";
+    font-size: 0.6em;
+    margin-right: 0.5rem;
+    transition: transform 0.2s;
     color: var(--sl-color-gray-3);
   }
+  .pf-details[open] > .pf-summary::before {
+    transform: rotate(90deg);
+  }
+  .pf-summary:hover {
+    background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+    border-radius: 0.5rem;
+  }
+  .pf-details[open] > .pf-summary:hover {
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+  .pf-summary-text { flex: 1; }
+  .pf-summary-count {
+    font-size: var(--sl-text-2xs);
+    font-weight: 400;
+    color: var(--sl-color-gray-3);
+  }
+  .pf-details-body {
+    padding: 0 1rem 1rem;
+  }
 
+  /* ========== Practice setup ========== */
   /* Direction pills */
   .pf-dir-row { display: flex; gap: 0.3rem; justify-content: center; margin-bottom: 0.75rem; }
   .pf-dir {
@@ -808,6 +909,57 @@ customElements.define("page-flashcards", PageFlashcards);
   .pf-sr-again { background-color: rgba(248, 113, 113, 0.08); }
   .pf-sr-skip .pf-sr-rat { color: var(--sl-color-gray-3); }
 
+  /* ========== Word Review table ========== */
+  .pf-review-wrap {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+  }
+  .pf-review-table { width: 100%; border-collapse: collapse; font-size: var(--sl-text-xs); }
+  .pf-review-table thead { position: sticky; top: 0; background: var(--sl-color-bg-nav); z-index: 1; }
+  .pf-review-table th {
+    padding: 0.3rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-2xs);
+  }
+  .pf-review-table td { padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--sl-color-gray-6); }
+  .pf-rv-nl { color: var(--sl-color-white); font-weight: 600; white-space: nowrap; }
+  .pf-rv-en { color: var(--sl-color-gray-2); }
+  .pf-rv-badge { text-align: center; width: 55px; }
+  .pf-rv-tag {
+    display: inline-block;
+    font-size: var(--sl-text-2xs);
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 999rem;
+  }
+  .pf-rv-again .pf-rv-tag { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+  .pf-rv-hard .pf-rv-tag { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+  .pf-rv-unseen .pf-rv-tag { color: var(--sl-color-gray-3); background: var(--sl-color-gray-6); }
+  .pf-rv-easy .pf-rv-tag { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  .pf-rv-again { background-color: rgba(248, 113, 113, 0.06); }
+  .pf-rv-hard { background-color: rgba(251, 191, 36, 0.06); }
+  .pf-rv-audio {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+    transition: color 0.15s;
+  }
+  .pf-rv-audio:hover { color: var(--sl-color-text-accent); }
+  .pf-rv-audio svg { width: 14px; height: 14px; }
+
   /* Link */
   .pf-link { text-align: center; margin-top: 0.5rem; }
   .pf-link a { font-size: var(--sl-text-xs); color: var(--sl-color-text-accent); text-decoration: none; font-weight: 600; }
@@ -816,7 +968,7 @@ customElements.define("page-flashcards", PageFlashcards);
   /* Focus styles */
   .pf-rate:focus-visible, .pf-tbtn:focus-visible, .pf-nav:focus-visible,
   .pf-dir:focus-visible, .pf-start:focus-visible, .pf-audio:focus-visible,
-  .pf-btn-pri:focus-visible, .pf-btn-sec:focus-visible {
+  .pf-btn-pri:focus-visible, .pf-btn-sec:focus-visible, .pf-rv-audio:focus-visible {
     outline: 2px solid var(--sl-color-text-accent);
     outline-offset: 2px;
   }
@@ -828,6 +980,7 @@ customElements.define("page-flashcards", PageFlashcards);
     .pf-card { height: 200px; }
     .pf-nav { width: 26px; height: 50px; }
     .pf-keys { display: none; }
+    .pf-rv-nl { white-space: normal; }
   }
   @media (pointer: coarse) {
     .pf-nav { min-width: 44px; min-height: 44px; }
@@ -837,5 +990,7 @@ customElements.define("page-flashcards", PageFlashcards);
     .pf-rate { min-height: 44px; padding: 0.4rem 0.75rem; }
     .pf-tbtn { min-height: 36px; }
     .pf-btn-pri, .pf-btn-sec { min-height: 44px; }
+    .pf-rv-audio { min-width: 44px; min-height: 44px; padding: 8px; }
+    .pf-summary { min-height: 48px; }
   }
 </style>

@@ -22,8 +22,8 @@ src/
 ├── components/
 │   ├── DutchAudio.astro      # Auto-injects speaker buttons into tables & dialogues
 │   ├── FlashcardApp.astro    # Main flashcard practice app (24 decks, 1,752 cards)
-│   ├── PageFlashcards.astro  # Per-page flashcard widget (stable DOM, auto-extracts)
-│   ├── PageSummary.astro     # Server-rendered summary box (word count, topics, flashcard link)
+│   ├── PageFlashcards.astro  # Per-page flashcard widget (collapsible practice + word review)
+│   ├── PageSummary.astro     # Server-rendered summary box (word count, topics)
 │   ├── Say.astro             # Inline pronunciation button: <Say text="hallo" />
 │   ├── ExamPractice.astro    # Interactive exam with live validation & scoring
 │   └── ExternalLinks.astro   # Opens external links in new tabs
@@ -61,17 +61,18 @@ import PageSummary from '@components/PageSummary.astro';
 
 <DutchAudio />
 <PageSummary wordCount={55} topics={["Topic1", "Topic2", "Topic3"]} />
+<PageFlashcards />
+
+Intro text goes here...
 
 | Dutch | English | IPA | Example Sentence |
 |-------|---------|-----|------------------|
 | hallo | hello | `/ˈhɑloː/` | Hallo, hoe gaat het? |
-
-<PageFlashcards />
 ```
 
 - `<DutchAudio />` must be on its own line after imports
 - `<PageSummary />` goes right after `<DutchAudio />` with word count and topic tags
-- `<PageFlashcards />` goes at the end of the file
+- `<PageFlashcards />` goes right after `<PageSummary />` (at the top, not the bottom)
 - IPA wrapped in backticks: `` `/ˈhɑloː/` ``
 
 ### Audio System (DutchAudio.astro)
@@ -121,6 +122,9 @@ All content pages now include IPA transcriptions in backtick format (`` `/ˈhɑl
 - **Running tally:** Both FlashcardApp and PageFlashcards show colored easy/hard/again badges during practice, updating after each rating
 - **PageFlashcards ratings:** Per-page flashcard widget also supports Again/Hard/Easy ratings with session summary, syncs to shared localStorage
 - **PageFlashcards stable DOM:** Uses a skeleton built once in `connectedCallback()` with three screens (setup/practice/summary). `renderCard()` does targeted element updates only — no full innerHTML rebuild, preventing scroll position loss and layout jumps
+- **PageFlashcards collapsible sections:** Two `<details>/<summary>` accordions at top of each page:
+  1. **Practice Flashcards** (closed by default): direction picker, start button, practice screen, summary screen
+  2. **Word Review** (closed by default): always-available sorted word list reading `dutch-fc-progress` from localStorage. Sort order: Again (red) → Hard (yellow) → Unseen (gray) → Easy (green). Refreshes on `<details>` toggle open. Each row has an audio button.
 
 Two independent extraction mechanisms:
 
@@ -132,9 +136,9 @@ To add words to global flashcards: update MDX tables, then re-run the extraction
 ### Page Summary (PageSummary.astro)
 
 Server-rendered Astro component (no client JS) showing a compact summary box at the top of each content page:
-- Word count badge, topic tags, in-page link to flashcard practice
+- Word count badge, topic tags
 - Props: `wordCount` (number) and `topics` (string array)
-- Placed after `<DutchAudio />` and before intro text on all content pages
+- Placed after `<DutchAudio />` and before `<PageFlashcards />` on all content pages
 
 ### Connected Stories
 
