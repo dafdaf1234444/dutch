@@ -186,6 +186,7 @@ for (const source of SOURCES) {
 }
 
 process.stdout.write(`\nTotal: ${totalCards} unique cards across ${decks.length} decks\n`);
+console.log('Note: CEFR A1/A2 decks show fewer cards than source due to cross-deck deduplication (A1: ~86/298, A2: ~297/549).');
 
 // Generate TypeScript file
 const tsLines = [
