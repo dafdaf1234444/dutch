@@ -7,7 +7,7 @@
 ---
 
 <script>
-  import { speakDutch, stopAll } from "../scripts/dutch-speech";
+  import { speakDutch, stopAll, whenVoicesReady, hasDutchVoice } from "../scripts/dutch-speech";
   import { buildAudioPanel, type SentenceGroup } from "../scripts/audio-panel";
 
   const AUDIO_HEADERS = new Set([
@@ -239,6 +239,20 @@
     if (audioTables.length > 0 && groups.length > 0) {
       const panel = buildAudioPanel(groups);
       audioTables[0].parentElement?.insertBefore(panel, audioTables[0]);
+
+      // After voices are resolved, warn if no Dutch voice is available
+      whenVoicesReady(() => {
+        if (!hasDutchVoice()) {
+          const summary = panel.querySelector(".audio-panel-summary");
+          if (summary) {
+            const note = document.createElement("span");
+            note.className = "ap-no-dutch-voice";
+            note.textContent = " (no Dutch voice — install a Dutch TTS voice for correct pronunciation)";
+            note.style.cssText = "font-size: 0.8em; color: var(--sl-color-text-accent, #888); margin-left: 4px;";
+            summary.appendChild(note);
+          }
+        }
+      });
     }
   }
 

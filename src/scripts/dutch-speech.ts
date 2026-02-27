@@ -143,6 +143,11 @@ export function whenVoicesReady(cb: () => void): void {
   }
 }
 
+/** Returns true if a Dutch voice was found. Use after whenVoicesReady(). */
+export function hasDutchVoice(): boolean {
+  return dutchVoice !== null;
+}
+
 /* ---- Rate management ---- */
 
 export function getRate(): number {
