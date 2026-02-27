@@ -9,7 +9,7 @@
 <flashcard-app id="flashcard-app"></flashcard-app>
 
 <script>
-import { speakDutch } from "../scripts/dutch-speech";
+import { speakDutch, whenVoicesReady } from "../scripts/dutch-speech";
 import { DECKS, type Word } from "../data/flashcard-decks";
 
 /* Standalone audio handler for flashcard audio buttons */
@@ -192,7 +192,7 @@ class FlashcardApp extends HTMLElement {
       /* Auto-play Dutch audio when revealing Dutch side */
       const card = this.cards[this.order[this.current]];
       if (!this.showDutchFirst[this.current]) {
-        speakDutch(card.dutch);
+        whenVoicesReady(() => speakDutch(card.dutch));
       }
       this.renderCard();
     } else {
@@ -597,7 +597,7 @@ class FlashcardApp extends HTMLElement {
 
     // Auto-play in Listen and Dictation mode
     if ((isListen || isDictation) && !this.flipped) {
-      setTimeout(() => speakDutch(card.dutch), 150);
+      whenVoicesReady(() => speakDutch(card.dutch));
     }
   }
 

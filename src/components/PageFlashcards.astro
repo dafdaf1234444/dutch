@@ -9,7 +9,7 @@
 <page-flashcards id="page-flashcards"></page-flashcards>
 
 <script>
-import { speakDutch } from "../scripts/dutch-speech";
+import { speakDutch, whenVoicesReady } from "../scripts/dutch-speech";
 
 const DUTCH_HEADERS = new Set([
   "dutch", "dutch word", "dutch expression", "dutch phrase",
@@ -449,7 +449,7 @@ class PageFlashcards extends HTMLElement {
 
     /* Auto-play in Listen mode */
     if (isListen && !this.flipped) {
-      setTimeout(() => speakDutch(card.dutch), 150);
+      whenVoicesReady(() => speakDutch(card.dutch));
     }
   }
 
